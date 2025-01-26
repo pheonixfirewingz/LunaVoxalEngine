@@ -20,28 +20,16 @@ endif()
 # Detect platform and set platform-specific variables
 if(WIN32)
     set(PLATFORM_NAME "win32")
-    add_compile_definitions(WIN32_LEAN_AND_MEAN)
-    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-    add_compile_definitions(ON_WINDOWS)
 elseif(APPLE)
     if(IOS)
         set(PLATFORM_NAME "ios")
-        add_compile_definitions(ON_IOS)
     else()
         set(PLATFORM_NAME "mac")
-        add_compile_definitions(ON_MAC)
     endif()
 elseif(ANDROID)
     set(PLATFORM_NAME "android")
-    add_compile_definitions(ON_ANDROID)
 elseif(LINUX)
     set(PLATFORM_NAME "linux")
-    add_compile_definitions(ON_LINUX)
-    if(USE_WAYLAND)
-        add_compile_definitions(ON_WAYLAND)
-    else()
-        add_compile_definitions(ON_X11)
-    endif()
 else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
@@ -125,6 +113,7 @@ find_package(Vulkan REQUIRED)
 
 # Platform-specific libraries
 if(WIN32)
+    add_definitions(WIN32_LEAN_AND_MEAN)
     set(PLATFORM_LIBS 
         kernel32.lib 
         user32.lib 
@@ -133,12 +122,15 @@ if(WIN32)
     )
 elseif(LINUX)
     if(USE_WAYLAND)
+        set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
         find_package(Wayland REQUIRED)
         add_definitions(-DUSE_WAYLAND)
-        list(APPEND PLATFORM_LIBS ${WAYLAND_LIBRARIES})
+        list(APPEND PLATFORM_LIBS ${Wayland_CLIENT_LIBRARY})
+        list(APPEND PLATFORM_INCLUDES ${Wayland_INCLUDE_DIR})
     else()
         find_package(X11 REQUIRED)
         list(APPEND PLATFORM_LIBS ${X11_LIBRARIES})
+        list(APPEND PLATFORM_INCLUDES ${X11_INCLUDE_DIR})
     endif()
     
     #broken see FindPipewire.cmake
@@ -155,6 +147,12 @@ elseif(APPLE)
         ${COCOA_LIBRARY}
         ${METAL_LIBRARY}
         ${AUDIO_LIBRARY}
+    )
+    
+    list(APPEND PLATFORM_INCLUDES
+        ${COCOA_INCLUDE_DIR}
+        ${METAL_INCLUDE_DIR}
+        ${AUDIO_INCLUDE_DIR}
     )
 endif()
 
@@ -186,6 +184,7 @@ add_executable(${PROJECT_NAME}
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE 
     src
+    ${PLATFORM_INCLUDES}
     ${Vulkan_INCLUDE_DIRS}
 )
 

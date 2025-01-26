@@ -1,0 +1,42 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "USE_WAYLAND",
+                "DEBUG"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "Windows",
+            "includePath": [
+                "/home/digitech/Desktop/LunaVoxalEngine/**"
+            ],
+            "defines": [
+                "WIN32_LEAN_AND_MEAN",
+                "DEBUG"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "intelliSenseMode": "windows-msvc-x64",
+            "compilerPathInCppPropertiesJson": "/usr/bin/gcc",
+            "cppStandard": "c++17",
+            "mergeConfigurations": false,
+            "browse": {
+                "path": [
+                    "/home/digitech/Desktop/LunaVoxalEngine/**",
+                    "${workspaceFolder}"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}
