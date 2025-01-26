@@ -34,55 +34,8 @@ else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
 
-# Vulkan SDK Download and Install Macro
-macro(download_vulkan_sdk)
-    if(NOT Vulkan_FOUND)
-        include(FetchContent)
-        
-        if(WIN32)
-            set(VULKAN_SDK_URL "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe")
-            set(VULKAN_DOWNLOAD_PATH "${CMAKE_BINARY_DIR}/vulkan-sdk-installer.exe")
-            
-            if(NOT EXISTS ${VULKAN_DOWNLOAD_PATH})
-                file(DOWNLOAD ${VULKAN_SDK_URL} ${VULKAN_DOWNLOAD_PATH} SHOW_PROGRESS)
-                execute_process(
-                    COMMAND ${VULKAN_DOWNLOAD_PATH} /S
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                    RESULT_VARIABLE VULKAN_INSTALL_RESULT
-                )
-                
-                if(NOT VULKAN_INSTALL_RESULT EQUAL 0)
-                    message(WARNING "Vulkan SDK installation failed")
-                endif()
-            endif()
-        elseif(LINUX)
-            find_program(APT_EXECUTABLE apt-get)
-            find_program(WGET_EXECUTABLE wget)
-            
-           # if(APT_EXECUTABLE)
-           #     execute_process(
-           #         COMMAND wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-           #         COMMAND sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.4.304-noble.list https://packages.lunarg.com/vulkan/1.4.304/lunarg-vulkan-1.4.304-noble.list
-           #     )
-           #     execute_process(
-           #         COMMAND sudo apt-get update
-           #         COMMAND sudo apt-get install -y vulkan-sdk
-           #     )
-           # endif()
-        elseif(APPLE)
-            find_program(BREW_EXECUTABLE brew)
-            if(BREW_EXECUTABLE)
-                execute_process(
-                    COMMAND brew install molten-vk
-                )
-            endif()
-        endif()
-    endif()
-endmacro()
-
 # Gather platform-specific source files
 file(GLOB PLATFORM_SOURCES
-
     "src/platform/${PLATFORM_NAME}.*"
     "src/platform/${PLATFORM_NAME}_*.*"
     "src/platform/common_*.*"
@@ -96,20 +49,16 @@ file(GLOB COMMON_PLATFORM_SOURCES
 
 # Gather renderer sources
 file(GLOB RENDERER_SOURCES
+    "src/renderer/*/*.h" 
+    "src/renderer/*/*.cpp"
     "src/renderer/*.h" 
     "src/renderer/*.cpp"
+    "src/renderer/third_party/volk-1.4.304/volk.cpp"
+    "src/renderer/third_party/volk-1.4.304/volk.h"
 )
 
 # Gather main sources
 file(GLOB MAIN_SOURCES)
-
-# Download Vulkan SDK if enabled
-if(ENABLE_VULKAN)
-    download_vulkan_sdk()
-endif()
-
-# Find Vulkan
-find_package(Vulkan REQUIRED)
 
 # Platform-specific libraries
 if(WIN32)
@@ -183,9 +132,9 @@ add_executable(${PROJECT_NAME}
 
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE 
-    src
+    "src/renderer/third_party/Vulkan-Headers-vulkan-sdk-1.4.304.0/include"
     ${PLATFORM_INCLUDES}
-    ${Vulkan_INCLUDE_DIRS}
+    src
 )
 
 # Compile definitions
@@ -195,7 +144,6 @@ endif()
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME}
-    ${Vulkan_LIBRARIES}
     ${PLATFORM_LIBS}
 )
 
