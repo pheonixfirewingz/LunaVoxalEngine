@@ -2,6 +2,7 @@
 #define COMMON_MAIN_H
 #include <vector>
 #include <string>
+#include <platform/window.h>
 namespace LunaVoxalEngine::Platform
 {
 class Runtime final
@@ -25,6 +26,7 @@ class Runtime final
         Runtime::Get()->Shutdown();
     }
   private:
+    Window::Window *window;
 };
 } // namespace LunaVoxalEngine::Platform
 #endif
