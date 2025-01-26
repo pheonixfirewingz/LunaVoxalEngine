@@ -1,13 +1,13 @@
 #ifndef PLATFORM_WINDOW_H
 #define PLATFORM_WINDOW_H
-#include <string>
+#include <utils/string.hpp>
 
 namespace LunaVoxalEngine::Platform::Window
 {
 class Window final
 {
   public:
-    Window(unsigned int width, unsigned int height, const std::string &title);
+    Window(unsigned int width, unsigned int height, const Utils::String &title);
     void pollEvents();
     void show();
     bool shouldClose() const;
@@ -25,7 +25,7 @@ class Window final
 class ChildWindow final
 {
   public:
-    ChildWindow(unsigned int width, unsigned int height, const std::string &title, Window *parent);
+    ChildWindow(unsigned int width, unsigned int height, const Utils::String &title, Window *parent);
     void embed();
     void pop();
     void pollEvents();
@@ -34,6 +34,7 @@ class ChildWindow final
     void hide();
     void resize(unsigned int width, unsigned int height);
     bool isVisible() const;
+    void* getvulkanLink();
     ~ChildWindow();
 
   private:

@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <platform/window.h>
+#include <platform/thread.h>
 namespace LunaVoxalEngine::Platform
 {
 class Runtime final
