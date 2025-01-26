@@ -12,12 +12,15 @@
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "intelliSenseMode": "linux-gcc-x64",
-            "cppStandard": "c++17"
+            "cppStandard": "c++17",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
         },
         {
             "name": "Windows",
             "includePath": [
-                "/home/digitech/Desktop/LunaVoxalEngine/**"
+                "${workspaceFolder}/src/**",
+                "${workspaceFolder}/src/renderer/third_party/volk-1.4.304/**",
+                "${workspaceFolder}/src/renderer/third_party/Vulkan-Headers-vulkan-sdk-1.4.304.0/include/**"
             ],
             "defines": [
                 "WIN32_LEAN_AND_MEAN",
@@ -31,8 +34,9 @@
             "mergeConfigurations": false,
             "browse": {
                 "path": [
-                    "/home/digitech/Desktop/LunaVoxalEngine/**",
-                    "${workspaceFolder}"
+                    "${workspaceFolder}/src/**",
+                    "${workspaceFolder}/src/renderer/third_party/volk-1.4.304/**",
+                    "${workspaceFolder}/src/renderer/third_party/Vulkan-Headers-vulkan-sdk-1.4.304.0/include/**"
                 ],
                 "limitSymbolsToIncludedHeaders": true
             }
