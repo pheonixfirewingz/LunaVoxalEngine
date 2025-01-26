@@ -1,0 +1,8 @@
+[submodule "src/renderer/third_party/volk"]
+	path = src/renderer/third_party/volk
+	url = https://github.com/zeux/volk.git
+	branch = vulkan-sdk-1.4.304
+[submodule "src/renderer/third_party/vk_headers"]
+	path = src/renderer/third_party/vk_headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git
+	branch = vulkan-sdk-1.4.304

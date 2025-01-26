@@ -53,8 +53,8 @@ file(GLOB RENDERER_SOURCES
     "src/renderer/*/*.cpp"
     "src/renderer/*.h" 
     "src/renderer/*.cpp"
-    "src/renderer/third_party/volk-1.4.304/volk.cpp"
-    "src/renderer/third_party/volk-1.4.304/volk.h"
+    "src/renderer/third_party/volk/volk.cpp"
+    "src/renderer/third_party/volk/volk.h"
 )
 
 # Gather main sources
@@ -132,7 +132,7 @@ add_executable(${PROJECT_NAME}
 
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE 
-    "src/renderer/third_party/Vulkan-Headers-vulkan-sdk-1.4.304.0/include"
+    "src/renderer/third_party/vk_headers/include"
     ${PLATFORM_INCLUDES}
     src
 )
