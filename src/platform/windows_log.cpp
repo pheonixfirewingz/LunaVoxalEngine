@@ -1,17 +1,19 @@
 #include <platform/log.h>
 #include <platform/common_log.h>
 #include <utils/string.hpp>
-#include <unistd.h>
-#include <sys/syscall.h>
+#define WINAPI __stdcall
+extern "C" {
+    int WINAPI WriteConsole(void* hConsoleOutput, const void* lpBuffer, unsigned long nNumberOfCharsToWrite, unsigned long* lpNumberOfCharsWritten, void* lpReserved);
+    void WINAPI ExitProcess(unsigned int uExitCode);
+}
 
 namespace LunaVoxalEngine::Log
 {
 static char buffer[BUFFER_SIZE];
 static size_t buffer_pos = 0;
-
 inline void flush() noexcept {
     if (buffer_pos > 0) {
-        syscall(SYS_write, 1, buffer, buffer_pos);
+        WriteConsole(nullptr, buffer, static_cast<unsigned long>(buffer_pos), nullptr, nullptr);
         buffer_pos = 0;
     }
 }
@@ -38,8 +40,7 @@ void write_char(const char c) noexcept {
     buffer[buffer_pos++] = c;
 }
 
-void fatal(const Utils::String &fmt, ...) noexcept
-{
+void fatal(const Utils::String &fmt, ...) noexcept {
     va_list args;
     va_start(args, fmt);
     write_str("LUNAVOXAL - FATAL: ", 20);
@@ -47,6 +48,8 @@ void fatal(const Utils::String &fmt, ...) noexcept
     print_generic(str.c_str(), args);
     write_char('\n');
     va_end(args);
-    syscall(SYS_exit, 1);
+
+    // Call the stubbed ExitProcess function to terminate the program
+    ExitProcess(1);
 }
 } // namespace LunaVoxalEngine::Log
