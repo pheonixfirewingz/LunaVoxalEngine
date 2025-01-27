@@ -4,6 +4,7 @@
 #include <platform/thread.h>
 #include <platform/window.h>
 #include <renderer/vulkan/device.h>
+#include <renderer/vulkan/swapchain.h>
 #include <vector>
 namespace LunaVoxalEngine::Platform
 {
@@ -30,6 +31,8 @@ class Runtime final
 
   private:
     Window::Window *window;
+    Renderer::Device *device;
+    Renderer::SwapChain *swap_chain;
 };
 } // namespace LunaVoxalEngine::Platform
 #endif
