@@ -1,15 +1,16 @@
 #ifndef COMMON_MAIN_H
 #define COMMON_MAIN_H
-#include <vector>
-#include <string>
-#include <platform/window.h>
+#include <utils/string.hpp>
 #include <platform/thread.h>
+#include <platform/window.h>
+#include <renderer/vulkan/device.h>
+#include <vector>
 namespace LunaVoxalEngine::Platform
 {
 class Runtime final
 {
   public:
-    bool Init(std::vector<std::string> args) noexcept;
+    bool Init(std::vector<Utils::String> args) noexcept;
     bool IsRunning() const noexcept;
     void Update() noexcept;
     void Shutdown() noexcept;
@@ -26,6 +27,7 @@ class Runtime final
     {
         Runtime::Get()->Shutdown();
     }
+
   private:
     Window::Window *window;
 };
