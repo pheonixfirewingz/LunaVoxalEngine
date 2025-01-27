@@ -33,45 +33,45 @@ struct __VulkanWayland
 Window::Window(unsigned int width, unsigned int height, const Utils::String &title)
 {
     wl_display *display = wl_display_connect(nullptr);
-    if (!display)
+    [[unlikely]] if (!display)
     {
         Log::fatal("Failed to connect to Wayland server");
     }
 
     wl_registry *registry = wl_display_get_registry(display);
-    if (!registry)
+    [[unlikely]] if (!registry)
     {
         Log::fatal("Failed to get registry");
     }
 
     wl_compositor *compositor =
         static_cast<wl_compositor *>(wl_registry_bind(registry, 1, &wl_compositor_interface, 4));
-    if (!compositor)
+    [[unlikely]] if (!compositor)
     {
         Log::fatal("Failed to bind wl_compositor");
     }
 
     wl_surface *surface = wl_compositor_create_surface(compositor);
-    if (!surface)
+    [[unlikely]] if (!surface)
     {
         Log::fatal("Failed to create wl_surface");
     }
 
     struct xdg_wm_base *xdg_wm_base =
         static_cast<struct xdg_wm_base *>(wl_registry_bind(registry, 3, &xdg_wm_base_interface, 1));
-    if (!xdg_wm_base)
+    [[unlikely]] if (!xdg_wm_base)
     {
         Log::fatal("Failed to bind xdg_wm_base");
     }
 
     xdg_surface *xdg_surface = xdg_wm_base_get_xdg_surface(xdg_wm_base, surface);
-    if (!xdg_surface)
+    [[unlikely]] if (!xdg_surface)
     {
         Log::fatal("Failed to create xdg_surface");
     }
 
     xdg_toplevel *xdg_toplevel = xdg_surface_get_toplevel(xdg_surface);
-    if (!xdg_toplevel)
+    [[unlikely]] if (!xdg_toplevel)
     {
         Log::fatal("Failed to create xdg_toplevel");
     }
@@ -81,7 +81,7 @@ Window::Window(unsigned int width, unsigned int height, const Utils::String &tit
     xdg_toplevel_set_app_id(xdg_toplevel, app_id.to_std_string().c_str());
 
     xdg_positioner *positioner = xdg_wm_base_create_positioner(xdg_wm_base);
-    if (!positioner)
+    [[unlikely]] if (!positioner)
     {
         Log::fatal("Failed to create xdg_positioner");
     }
@@ -89,14 +89,14 @@ Window::Window(unsigned int width, unsigned int height, const Utils::String &tit
 
     zxdg_decoration_manager_v1 *decoration_manager = static_cast<zxdg_decoration_manager_v1 *>(
         wl_registry_bind(registry, 4, &zxdg_decoration_manager_v1_interface, 1));
-    if (!decoration_manager)
+    [[unlikely]] if (!decoration_manager)
     {
         Log::fatal("Failed to bind zxdg_decoration_manager_v1");
     }
 
     zxdg_toplevel_decoration_v1 *decoration =
         zxdg_decoration_manager_v1_get_toplevel_decoration(decoration_manager, xdg_toplevel);
-    if (!decoration)
+    [[unlikely]] if (!decoration)
     {
         Log::fatal("Failed to create xdg_toplevel_decoration_v1");
     }
