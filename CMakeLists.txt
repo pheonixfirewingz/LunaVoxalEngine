@@ -20,16 +20,22 @@ endif()
 # Detect platform and set platform-specific variables
 if(WIN32)
     set(PLATFORM_NAME "win32")
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
+    add_definitions(-DON_WINDOWS)
 elseif(APPLE)
     if(IOS)
         set(PLATFORM_NAME "ios")
+        add_definitions(-DON_IOS)
     else()
         set(PLATFORM_NAME "mac")
+        add_definitions(-DON_MAC)
     endif()
 elseif(ANDROID)
     set(PLATFORM_NAME "android")
+    add_definitions(-DON_ANDROID)
 elseif(LINUX)
     set(PLATFORM_NAME "linux")
+    add_definitions(-DON_LINUX)
 else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
@@ -49,12 +55,11 @@ file(GLOB COMMON_PLATFORM_SOURCES
 
 # Gather renderer sources
 file(GLOB RENDERER_SOURCES
-    "src/renderer/*/*.h" 
-    "src/renderer/*/*.cpp"
+    "src/renderer/vulkan/*.h" 
+    "src/renderer/vulkan/*.cpp"
     "src/renderer/*.h" 
     "src/renderer/*.cpp"
     "src/renderer/third_party/volk/volk.cpp"
-    "src/renderer/third_party/volk/volk.h"
 )
 
 # Gather main sources
@@ -62,7 +67,6 @@ file(GLOB MAIN_SOURCES)
 
 # Platform-specific libraries
 if(WIN32)
-    add_definitions(WIN32_LEAN_AND_MEAN)
     set(PLATFORM_LIBS 
         kernel32.lib 
         user32.lib 
@@ -133,6 +137,7 @@ add_executable(${PROJECT_NAME}
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE 
     "src/renderer/third_party/vk_headers/include"
+    "src/renderer/third_party/volk"
     ${PLATFORM_INCLUDES}
     src
 )
