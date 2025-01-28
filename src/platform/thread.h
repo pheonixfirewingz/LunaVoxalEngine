@@ -126,6 +126,89 @@ private:
     friend class ConditionVariable;
 };
 
+// Scoped Mutex Wrapper
+class ScopeLock final
+{
+public:
+    explicit ScopeLock(Mutex& mutex, unsigned int timeout_ms = 0xFFFFFFFF)
+        : mutex_ref(mutex), is_locked(false)
+    {
+        if (mutex_ref.lock(timeout_ms) == ThreadError::THREAD_SUCCESS)
+        {
+            is_locked = true;
+        }
+    }
+
+    ~ScopeLock()
+    {
+        if (is_locked)
+        {
+            mutex_ref.unlock();
+        }
+    }
+
+    // Prevent copy semantics
+    ScopeLock(const ScopeLock&) = delete;
+    ScopeLock& operator=(const ScopeLock&) = delete;
+
+    // Allow move semantics
+    ScopeLock(ScopeLock&& other) noexcept
+        : mutex_ref(other.mutex_ref), is_locked(other.is_locked)
+    {
+        other.is_locked = false;
+    }
+
+    ScopeLock& operator=(ScopeLock&& other) noexcept
+    {
+        if (this != &other)
+        {
+            if (is_locked)
+            {
+                mutex_ref.unlock();
+            }
+
+            mutex_ref = other.mutex_ref;
+            is_locked = other.is_locked;
+            other.is_locked = false;
+        }
+        return *this;
+    }
+
+    bool owns_lock() const noexcept { return is_locked; }
+
+private:
+    Mutex& mutex_ref;
+    bool is_locked;
+};
+
+//GaurdLock Wrapper
+class GuardLock final
+{
+public:
+    explicit GuardLock(Mutex& mutex)
+        : mutex_ref(mutex)
+    {
+        mutex_ref.lock();
+    }
+
+    ~GuardLock()
+    {
+        mutex_ref.unlock();
+    }
+
+    // Prevent copy semantics
+    GuardLock(const GuardLock&) = delete;
+    GuardLock& operator=(const GuardLock&) = delete;
+
+    // Prevent move semantics
+    GuardLock(GuardLock&&) = delete;
+    GuardLock& operator=(GuardLock&&) = delete;
+
+private:
+    Mutex& mutex_ref;
+};
+
+
 // Read-Write Lock Wrapper
 class RWLock final
 {
