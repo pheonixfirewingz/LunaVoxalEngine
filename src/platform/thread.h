@@ -1,6 +1,6 @@
 #ifndef THREAD_ABSTRACTION_H
 #define THREAD_ABSTRACTION_H
-namespace LunaVoxalEngine::Platform::Thread
+namespace LunaVoxalEngine::Platform
 {
 // Error handling
 enum ThreadError {
@@ -113,7 +113,13 @@ public:
 
     ThreadError lock(unsigned int timeout_ms = 0xFFFFFFFF) { return mutex_lock(handle, timeout_ms); }
 
+    ThreadError try_lock() { return mutex_lock(handle, 0); }
+
     void unlock() { mutex_unlock(handle); }
+
+    ThreadError Lock(unsigned int timeout_ms = 0xFFFFFFFF) { return lock(timeout_ms); }
+    ThreadError TryLock() { return try_lock(); }
+    void Unlock() { unlock(); }
 
 private:
     mutex_handle* handle;

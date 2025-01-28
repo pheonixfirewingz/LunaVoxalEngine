@@ -1,9 +1,16 @@
 #include <platform/log.h>
 #include <platform/window.h>
+#include <utils/algoritom.h>
+#include <utils/string.h>
 #ifdef USE_WAYLAND
+extern "C"
+{
+#    define _NEW
 #    include <platform/xdg-decoration-unstable-v1-client-protocol.h>
 #    include <platform/xdg-shell-client-protocol.h>
 #    include <wayland-client.h>
+#    undef _NEW
+}
 #else
 #    include <xcb/xcb.h>
 #endif
@@ -14,20 +21,55 @@ struct __WindowData
 {
     wl_display *display;
     wl_registry *registry;
-    wl_compositor *compositor;
-    wl_surface *surface;
-    struct xdg_wm_base *xdg_wm_base;
-    struct xdg_toplevel *xdg_toplevel;
-    struct xdg_surface *xdg_surface;
-    zxdg_decoration_manager_v1 *decoration_manager;
-    zxdg_toplevel_decoration_v1 *decoration;
-    struct xdg_positioner *positioner;
+    wl_compositor *compositor = nullptr;
+    wl_surface *surface = nullptr;
+    struct xdg_wm_base *xdg_wm_base = nullptr;
+    struct xdg_toplevel *xdg_toplevel = nullptr;
+    struct xdg_surface *xdg_surface = nullptr;
+    zxdg_decoration_manager_v1 *decoration_manager = nullptr;
+    zxdg_toplevel_decoration_v1 *decoration = nullptr;
+    struct xdg_positioner *positioner = nullptr;
+
+    explicit __WindowData(wl_display *display, wl_registry *registry)
+        : display(display)
+        , registry(registry)
+    {
+    }
 };
 
 struct __VulkanWayland
 {
     wl_display *display;
     wl_surface *surface;
+};
+
+const static wl_registry_listener registry_listener = {
+    .global =
+        [](void *data, wl_registry *registry, uint32_t name, const char *interface, uint32_t) {
+            auto *state = static_cast<__WindowData *>(data);
+            if (Utils::strcmp(interface, wl_compositor_interface.name) == 0)
+            {
+                state->compositor =
+                    static_cast<wl_compositor *>(wl_registry_bind(registry, name, &wl_compositor_interface, 4));
+            }
+            else if (Utils::strcmp(interface, xdg_wm_base_interface.name) == 0)
+            {
+                state->xdg_wm_base =
+                    static_cast<xdg_wm_base *>(wl_registry_bind(registry, name, &xdg_wm_base_interface, 1));
+                const static xdg_wm_base_listener wm_base_listener = {
+                    .ping = [](void *, struct xdg_wm_base *wm_base,
+                               uint32_t serial) { xdg_wm_base_pong(wm_base, serial); },
+                };
+
+                xdg_wm_base_add_listener(state->xdg_wm_base, &wm_base_listener, state);
+            }
+            else if (Utils::strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
+            {
+                state->decoration_manager = static_cast<zxdg_decoration_manager_v1 *>(
+                    wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1));
+            }
+        },
+    .global_remove = [](void *, wl_registry *, uint32_t) {},
 };
 
 Window::Window(unsigned int width, unsigned int height, const Utils::String &title)
@@ -44,31 +86,24 @@ Window::Window(unsigned int width, unsigned int height, const Utils::String &tit
         Log::fatal("Failed to get registry");
     }
 
-    wl_compositor *compositor =
-        static_cast<wl_compositor *>(wl_registry_bind(registry, 1, &wl_compositor_interface, 4));
-    [[unlikely]] if (!compositor)
-    {
-        Log::fatal("Failed to bind wl_compositor");
-    }
+    __WindowData *data = new __WindowData{display, registry};
 
-    wl_surface *surface = wl_compositor_create_surface(compositor);
+    wl_registry_add_listener(registry, &registry_listener, static_cast<void *>(data));
+    wl_display_roundtrip(display);
+
+    wl_surface *surface = wl_compositor_create_surface(data->compositor);
     [[unlikely]] if (!surface)
     {
         Log::fatal("Failed to create wl_surface");
     }
+    data->surface = surface;
 
-    struct xdg_wm_base *xdg_wm_base =
-        static_cast<struct xdg_wm_base *>(wl_registry_bind(registry, 3, &xdg_wm_base_interface, 1));
-    [[unlikely]] if (!xdg_wm_base)
-    {
-        Log::fatal("Failed to bind xdg_wm_base");
-    }
-
-    xdg_surface *xdg_surface = xdg_wm_base_get_xdg_surface(xdg_wm_base, surface);
+    xdg_surface *xdg_surface = xdg_wm_base_get_xdg_surface(data->xdg_wm_base, surface);
     [[unlikely]] if (!xdg_surface)
     {
         Log::fatal("Failed to create xdg_surface");
     }
+    data->xdg_surface = xdg_surface;
 
     xdg_toplevel *xdg_toplevel = xdg_surface_get_toplevel(xdg_surface);
     [[unlikely]] if (!xdg_toplevel)
@@ -76,26 +111,21 @@ Window::Window(unsigned int width, unsigned int height, const Utils::String &tit
         Log::fatal("Failed to create xdg_toplevel");
     }
 
-    xdg_toplevel_set_title(xdg_toplevel, title.to_std_string().c_str());
+    xdg_toplevel_set_title(xdg_toplevel, title.throw_away().c_str());
     Utils::String app_id = "com.github.LunaVoxalEngine." + title;
-    xdg_toplevel_set_app_id(xdg_toplevel, app_id.to_std_string().c_str());
+    xdg_toplevel_set_app_id(xdg_toplevel, app_id.throw_away().c_str());
+    data->xdg_toplevel = xdg_toplevel;
 
-    xdg_positioner *positioner = xdg_wm_base_create_positioner(xdg_wm_base);
+    xdg_positioner *positioner = xdg_wm_base_create_positioner(data->xdg_wm_base);
     [[unlikely]] if (!positioner)
     {
         Log::fatal("Failed to create xdg_positioner");
     }
     xdg_positioner_set_size(positioner, width, height);
-
-    zxdg_decoration_manager_v1 *decoration_manager = static_cast<zxdg_decoration_manager_v1 *>(
-        wl_registry_bind(registry, 4, &zxdg_decoration_manager_v1_interface, 1));
-    [[unlikely]] if (!decoration_manager)
-    {
-        Log::fatal("Failed to bind zxdg_decoration_manager_v1");
-    }
+    data->positioner = positioner;
 
     zxdg_toplevel_decoration_v1 *decoration =
-        zxdg_decoration_manager_v1_get_toplevel_decoration(decoration_manager, xdg_toplevel);
+        zxdg_decoration_manager_v1_get_toplevel_decoration(data->decoration_manager, xdg_toplevel);
     [[unlikely]] if (!decoration)
     {
         Log::fatal("Failed to create xdg_toplevel_decoration_v1");
@@ -104,9 +134,9 @@ Window::Window(unsigned int width, unsigned int height, const Utils::String &tit
     zxdg_toplevel_decoration_v1_set_mode(decoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 
     wl_surface_commit(surface);
+    data->decoration = decoration;
 
-    window = new __WindowData{display,      registry,    compositor,         surface,    xdg_wm_base,
-                              xdg_toplevel, xdg_surface, decoration_manager, decoration, positioner};
+    window = static_cast<void *>(data);
 }
 
 void Window::pollEvents()
@@ -165,13 +195,71 @@ Window::~Window()
     zxdg_decoration_manager_v1_destroy(data->decoration_manager);
 }
 #else
+
+struct __WindowData
+{
+    xcb_connection_t *con;
+    xcb_window_t win;
+    xcb_screen_t *screen;
+    xcb_key_symbols_t *symbols;
+    losSize configured_size;
+    xcb_intern_atom_reply_t *atom_wm_delete_window;
+};
+
 Window::Window(unsigned int width, unsigned int height, const Utils::String &title)
 {
+    uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+    con = xcb_connect(nullptr, nullptr);
+    screen = xcb_setup_roots_iterator(xcb_get_setup(con)).data;
+    uint32_t values[2];
+    values[0] = screen->white_pixel;
+    values[1] = XCB_EVENT_MASK_EXPOSURE;
+
+    win = xcb_generate_id(con);
+
+    xcb_create_window(con, XCB_COPY_FROM_PARENT, win, screen->root, 0, 0, win_size.length_one, win_size.length_two, 0,
+                      XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask, values);
+
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(con, 1, 12, "WM_PROTOCOLS");
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(con, cookie, nullptr);
+
+    xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(con, 0, 16, "WM_DELETE_WINDOW");
+    atom_wm_delete_window = xcb_intern_atom_reply(con, cookie2, nullptr);
+
+    xcb_change_property(con, XCB_PROP_MODE_REPLACE, win, (*reply).atom, 4, 32, 1, &(*atom_wm_delete_window).atom);
+    free(reply);
+
+    xcb_change_property(con, XCB_PROP_MODE_REPLACE, win, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, title.size(),
+                        title.c_str());
+
+    /* Map the window on the screen */
+    xcb_map_window(con, win);
+
+    const uint32_t coords[] = {300, 150};
+    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, coords);
+    /* Make sure commands are sent before we pause, so window is shown */
+    xcb_flush(con);
 }
 
 void Window::pollEvents()
 {
+    xcb_generic_event_t *event = xcb_poll_for_event(con);
+    if (event == nullptr)
+        return;
+    switch (event->response_type & ~0x80)
+    {
+    case XCB_CLIENT_MESSAGE:
+        if ((*(xcb_client_message_event_t *)event).data.data32[0] == (*atom_wm_delete_window).atom)
+        {
+            should_close = true;
+        }
+        break;
+    default:
+        break;
+    }
+    free(event);
 }
+
 void Window::show()
 {
 }
@@ -194,6 +282,9 @@ void Window::getvulkanLink()
 
 Window::~Window()
 {
+    auto data = (__WindowData *)window;
+    xcb_destroy_window(data->con, data->win);
+    xcb_disconnect(data->con);
 }
 #endif
 } // namespace LunaVoxalEngine::Platform::Window

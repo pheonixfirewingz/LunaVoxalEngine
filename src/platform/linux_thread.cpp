@@ -1,11 +1,11 @@
 #include <platform/thread.h>
-
+#include <utils/new.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
 #include <time.h>
 #include <unistd.h>
-namespace LunaVoxalEngine::Platform::Thread
+namespace LunaVoxalEngine::Platform
 {
 struct thread_handle
 {

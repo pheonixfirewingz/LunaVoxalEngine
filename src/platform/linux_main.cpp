@@ -5,7 +5,7 @@ using namespace LunaVoxalEngine::Log;
 
 int main(int argc, char *argv[])
 {
-    std::vector<LunaVoxalEngine::Utils::String> args;
+    LunaVoxalEngine::Utils::Vector<LunaVoxalEngine::Utils::String> args;
     args.reserve(argc);
     for (int i = 0; i < argc; i++)
     {

@@ -1,6 +1,6 @@
 #ifndef LOG_H
 #define LOG_H
-#include <utils/string.hpp>
+#include <utils/string.h>
 
 namespace LunaVoxalEngine::Log
 {

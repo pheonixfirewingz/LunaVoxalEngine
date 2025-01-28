@@ -1,6 +1,7 @@
 #include <platform/log.h>
 #include <platform/common_log.h>
-#include <utils/string.hpp>
+#include <utils/string.h>
+#include <utils/algoritom.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 
@@ -23,7 +24,7 @@ void write_str(const char* str, size_t len) noexcept {
     size_t remaining_space = BUFFER_SIZE - buffer_pos;
     size_t copy_len = (len < remaining_space) ? len : remaining_space;
 
-    memcpy(buffer + buffer_pos, str, copy_len);
+    Utils::memcpy(buffer + buffer_pos, str, copy_len);
     buffer_pos += copy_len;
     if (copy_len < len) {
         flush();
@@ -43,7 +44,7 @@ void fatal(const Utils::String &fmt, ...) noexcept
     va_list args;
     va_start(args, fmt);
     write_str("LUNAVOXAL - FATAL: ", 20);
-    auto str = fmt.to_std_string();
+    auto str = fmt.throw_away();
     print_generic(str.c_str(), args);
     write_char('\n');
     va_end(args);

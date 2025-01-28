@@ -1,11 +1,12 @@
 #include <platform/common_log.h>
 #include <platform/log.h>
-#include <utils/string.hpp>
+#include <utils/string.h>
+#include <utils/algoritom.h>
 namespace LunaVoxalEngine::Log
 {
 
 void convert_and_write_string(char* str) {
-    write_str(str, strlen(str));
+    write_str(str, Utils::strlen(str));
 }
 
 void convert_and_write_char(char value) {
@@ -90,7 +91,7 @@ void convert_and_write_hex(int value) {
 }
 
 void print_generic(const char* format, va_list args) {
-    size_t i = 0;
+    unsigned long i = 0;
     while (format[i] != '\0') {
         if (format[i] == '%' && format[i + 1] != '\0') {
             i++;
@@ -120,6 +121,24 @@ void print_generic(const char* format, va_list args) {
                     convert_and_write_hex(num);
                     break;
                 }
+                case 'z': {
+                    if (format[i + 1] == 'u') {
+                        i++;
+                        unsigned long num = va_arg(args, unsigned long);
+                        char buffer[21];
+                        unsigned long index = 20;
+                        do {
+                            buffer[--index] = (num % 10) + '0';
+                            num /= 10;
+                        } while (num > 0);
+                        buffer[index] = '\0';
+                        write_str(buffer + index, 20 - index);
+                    } else {
+                        write_char('%');
+                        write_char(format[i]);
+                    }
+                    break;
+                }
                 case '%': {
                     write_char('%');
                     break;
@@ -143,7 +162,7 @@ void trace(const Utils::String &fmt, ...) noexcept
     va_list args;
     va_start(args, fmt);
     write_str("LUNAVOXAL - TRACE: ", 20);
-    auto str = fmt.to_std_string();
+    auto str = fmt.throw_away();
     print_generic(str.c_str(), args);
     write_char('\n');
     va_end(args);
@@ -154,7 +173,7 @@ void debug(const Utils::String &fmt, ...) noexcept
     va_list args;
     va_start(args, fmt);
     write_str("LUNAVOXAL - DEBUG: ", 20);
-    auto str = fmt.to_std_string();
+    auto str = fmt.throw_away();
     print_generic(str.c_str(), args);
     write_char('\n');
     va_end(args);
@@ -165,7 +184,7 @@ void info(const Utils::String &fmt, ...) noexcept
     va_list args;
     va_start(args, fmt);
     write_str("LUNAVOXAL - INFO: ", 20);
-    auto str = fmt.to_std_string();
+    auto str = fmt.throw_away();
     print_generic(str.c_str(), args);
     write_char('\n');
     va_end(args);
@@ -175,7 +194,7 @@ void warn(const Utils::String &fmt, ...) noexcept
     va_list args;
     va_start(args, fmt);
     write_str("LUNAVOXAL - WARN: ", 20);
-    auto str = fmt.to_std_string();
+    auto str = fmt.throw_away();
     print_generic(str.c_str(), args);
     write_char('\n');
     va_end(args);
@@ -185,7 +204,7 @@ void error(const Utils::String &fmt, ...) noexcept
     va_list args;
     va_start(args, fmt);
     write_str("LUNAVOXAL - ERROR: ", 20);
-    auto str = fmt.to_std_string();
+    auto str = fmt.throw_away();
     print_generic(str.c_str(), args);
     write_char('\n');
     va_end(args);

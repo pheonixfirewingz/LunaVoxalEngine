@@ -1,6 +1,6 @@
 #ifndef PLATFORM_WINDOW_H
 #define PLATFORM_WINDOW_H
-#include <utils/string.hpp>
+#include <utils/string.h>
 
 namespace LunaVoxalEngine::Platform::Window
 {
