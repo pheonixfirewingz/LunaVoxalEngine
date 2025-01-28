@@ -2,108 +2,113 @@
 
 #include <renderer/vulkan/swapchain.h>
 #include <utils/algoritom.h>
-static inline const char* string_VkResult(VkResult input_value) {
-    switch (input_value) {
-        case VK_SUCCESS:
-            return "VK_SUCCESS";
-        case VK_NOT_READY:
-            return "VK_NOT_READY";
-        case VK_TIMEOUT:
-            return "VK_TIMEOUT";
-        case VK_EVENT_SET:
-            return "VK_EVENT_SET";
-        case VK_EVENT_RESET:
-            return "VK_EVENT_RESET";
-        case VK_INCOMPLETE:
-            return "VK_INCOMPLETE";
-        case VK_ERROR_OUT_OF_HOST_MEMORY:
-            return "VK_ERROR_OUT_OF_HOST_MEMORY";
-        case VK_ERROR_OUT_OF_DEVICE_MEMORY:
-            return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
-        case VK_ERROR_INITIALIZATION_FAILED:
-            return "VK_ERROR_INITIALIZATION_FAILED";
-        case VK_ERROR_DEVICE_LOST:
-            return "VK_ERROR_DEVICE_LOST";
-        case VK_ERROR_MEMORY_MAP_FAILED:
-            return "VK_ERROR_MEMORY_MAP_FAILED";
-        case VK_ERROR_LAYER_NOT_PRESENT:
-            return "VK_ERROR_LAYER_NOT_PRESENT";
-        case VK_ERROR_EXTENSION_NOT_PRESENT:
-            return "VK_ERROR_EXTENSION_NOT_PRESENT";
-        case VK_ERROR_FEATURE_NOT_PRESENT:
-            return "VK_ERROR_FEATURE_NOT_PRESENT";
-        case VK_ERROR_INCOMPATIBLE_DRIVER:
-            return "VK_ERROR_INCOMPATIBLE_DRIVER";
-        case VK_ERROR_TOO_MANY_OBJECTS:
-            return "VK_ERROR_TOO_MANY_OBJECTS";
-        case VK_ERROR_FORMAT_NOT_SUPPORTED:
-            return "VK_ERROR_FORMAT_NOT_SUPPORTED";
-        case VK_ERROR_FRAGMENTED_POOL:
-            return "VK_ERROR_FRAGMENTED_POOL";
-        case VK_ERROR_UNKNOWN:
-            return "VK_ERROR_UNKNOWN";
-        case VK_ERROR_OUT_OF_POOL_MEMORY:
-            return "VK_ERROR_OUT_OF_POOL_MEMORY";
-        case VK_ERROR_INVALID_EXTERNAL_HANDLE:
-            return "VK_ERROR_INVALID_EXTERNAL_HANDLE";
-        case VK_ERROR_FRAGMENTATION:
-            return "VK_ERROR_FRAGMENTATION";
-        case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
-            return "VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS";
-        case VK_PIPELINE_COMPILE_REQUIRED:
-            return "VK_PIPELINE_COMPILE_REQUIRED";
-        case VK_ERROR_NOT_PERMITTED:
-            return "VK_ERROR_NOT_PERMITTED";
-        case VK_ERROR_SURFACE_LOST_KHR:
-            return "VK_ERROR_SURFACE_LOST_KHR";
-        case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
-            return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
-        case VK_SUBOPTIMAL_KHR:
-            return "VK_SUBOPTIMAL_KHR";
-        case VK_ERROR_OUT_OF_DATE_KHR:
-            return "VK_ERROR_OUT_OF_DATE_KHR";
-        case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
-            return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
-        case VK_ERROR_VALIDATION_FAILED_EXT:
-            return "VK_ERROR_VALIDATION_FAILED_EXT";
-        case VK_ERROR_INVALID_SHADER_NV:
-            return "VK_ERROR_INVALID_SHADER_NV";
-        case VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR:
-            return "VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR";
-        case VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR:
-            return "VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR";
-        case VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR:
-            return "VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR";
-        case VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR:
-            return "VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR";
-        case VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR:
-            return "VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR";
-        case VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR:
-            return "VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR";
-        case VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT:
-            return "VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
-        case VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT:
-            return "VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT";
-        case VK_THREAD_IDLE_KHR:
-            return "VK_THREAD_IDLE_KHR";
-        case VK_THREAD_DONE_KHR:
-            return "VK_THREAD_DONE_KHR";
-        case VK_OPERATION_DEFERRED_KHR:
-            return "VK_OPERATION_DEFERRED_KHR";
-        case VK_OPERATION_NOT_DEFERRED_KHR:
-            return "VK_OPERATION_NOT_DEFERRED_KHR";
-        case VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR:
-            return "VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR";
-        case VK_ERROR_COMPRESSION_EXHAUSTED_EXT:
-            return "VK_ERROR_COMPRESSION_EXHAUSTED_EXT";
-        case VK_INCOMPATIBLE_SHADER_BINARY_EXT:
-            return "VK_INCOMPATIBLE_SHADER_BINARY_EXT";
-        case VK_PIPELINE_BINARY_MISSING_KHR:
-            return "VK_PIPELINE_BINARY_MISSING_KHR";
-        case VK_ERROR_NOT_ENOUGH_SPACE_KHR:
-            return "VK_ERROR_NOT_ENOUGH_SPACE_KHR";
-        default:
-            return "Unhandled VkResult";
+
+extern VkAllocationCallbacks callbacks;
+
+static inline const char *string_VkResult(VkResult input_value)
+{
+    switch (input_value)
+    {
+    case VK_SUCCESS:
+        return "VK_SUCCESS";
+    case VK_NOT_READY:
+        return "VK_NOT_READY";
+    case VK_TIMEOUT:
+        return "VK_TIMEOUT";
+    case VK_EVENT_SET:
+        return "VK_EVENT_SET";
+    case VK_EVENT_RESET:
+        return "VK_EVENT_RESET";
+    case VK_INCOMPLETE:
+        return "VK_INCOMPLETE";
+    case VK_ERROR_OUT_OF_HOST_MEMORY:
+        return "VK_ERROR_OUT_OF_HOST_MEMORY";
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+        return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+    case VK_ERROR_INITIALIZATION_FAILED:
+        return "VK_ERROR_INITIALIZATION_FAILED";
+    case VK_ERROR_DEVICE_LOST:
+        return "VK_ERROR_DEVICE_LOST";
+    case VK_ERROR_MEMORY_MAP_FAILED:
+        return "VK_ERROR_MEMORY_MAP_FAILED";
+    case VK_ERROR_LAYER_NOT_PRESENT:
+        return "VK_ERROR_LAYER_NOT_PRESENT";
+    case VK_ERROR_EXTENSION_NOT_PRESENT:
+        return "VK_ERROR_EXTENSION_NOT_PRESENT";
+    case VK_ERROR_FEATURE_NOT_PRESENT:
+        return "VK_ERROR_FEATURE_NOT_PRESENT";
+    case VK_ERROR_INCOMPATIBLE_DRIVER:
+        return "VK_ERROR_INCOMPATIBLE_DRIVER";
+    case VK_ERROR_TOO_MANY_OBJECTS:
+        return "VK_ERROR_TOO_MANY_OBJECTS";
+    case VK_ERROR_FORMAT_NOT_SUPPORTED:
+        return "VK_ERROR_FORMAT_NOT_SUPPORTED";
+    case VK_ERROR_FRAGMENTED_POOL:
+        return "VK_ERROR_FRAGMENTED_POOL";
+    case VK_ERROR_UNKNOWN:
+        return "VK_ERROR_UNKNOWN";
+    case VK_ERROR_OUT_OF_POOL_MEMORY:
+        return "VK_ERROR_OUT_OF_POOL_MEMORY";
+    case VK_ERROR_INVALID_EXTERNAL_HANDLE:
+        return "VK_ERROR_INVALID_EXTERNAL_HANDLE";
+    case VK_ERROR_FRAGMENTATION:
+        return "VK_ERROR_FRAGMENTATION";
+    case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
+        return "VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS";
+    case VK_PIPELINE_COMPILE_REQUIRED:
+        return "VK_PIPELINE_COMPILE_REQUIRED";
+    case VK_ERROR_NOT_PERMITTED:
+        return "VK_ERROR_NOT_PERMITTED";
+    case VK_ERROR_SURFACE_LOST_KHR:
+        return "VK_ERROR_SURFACE_LOST_KHR";
+    case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
+        return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
+    case VK_SUBOPTIMAL_KHR:
+        return "VK_SUBOPTIMAL_KHR";
+    case VK_ERROR_OUT_OF_DATE_KHR:
+        return "VK_ERROR_OUT_OF_DATE_KHR";
+    case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
+        return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
+    case VK_ERROR_VALIDATION_FAILED_EXT:
+        return "VK_ERROR_VALIDATION_FAILED_EXT";
+    case VK_ERROR_INVALID_SHADER_NV:
+        return "VK_ERROR_INVALID_SHADER_NV";
+    case VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR:
+        return "VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR";
+    case VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR:
+        return "VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR";
+    case VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR:
+        return "VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR";
+    case VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR:
+        return "VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR";
+    case VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR:
+        return "VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR";
+    case VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR:
+        return "VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR";
+    case VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT:
+        return "VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
+    case VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT:
+        return "VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT";
+    case VK_THREAD_IDLE_KHR:
+        return "VK_THREAD_IDLE_KHR";
+    case VK_THREAD_DONE_KHR:
+        return "VK_THREAD_DONE_KHR";
+    case VK_OPERATION_DEFERRED_KHR:
+        return "VK_OPERATION_DEFERRED_KHR";
+    case VK_OPERATION_NOT_DEFERRED_KHR:
+        return "VK_OPERATION_NOT_DEFERRED_KHR";
+    case VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR:
+        return "VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR";
+    case VK_ERROR_COMPRESSION_EXHAUSTED_EXT:
+        return "VK_ERROR_COMPRESSION_EXHAUSTED_EXT";
+    case VK_INCOMPATIBLE_SHADER_BINARY_EXT:
+        return "VK_INCOMPATIBLE_SHADER_BINARY_EXT";
+    case VK_PIPELINE_BINARY_MISSING_KHR:
+        return "VK_PIPELINE_BINARY_MISSING_KHR";
+    case VK_ERROR_NOT_ENOUGH_SPACE_KHR:
+        return "VK_ERROR_NOT_ENOUGH_SPACE_KHR";
+    default:
+        return "Unhandled VkResult";
     }
 }
 
@@ -136,7 +141,7 @@ VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentM
 }
 
 static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *device, VkSwapchainKHR *swap_chain,
-                              VkSurfaceKHR surface) noexcept
+                                  VkSurfaceKHR surface) noexcept
 {
     // Query surface capabilities, formats, and present modes first
     VkSurfaceCapabilitiesKHR capabilities;
@@ -192,7 +197,7 @@ static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *devic
     create_info.clipped = VK_TRUE;
     create_info.oldSwapchain = *swap_chain;
 
-    return vkCreateSwapchainKHR(volkGetLoadedDevice(), &create_info, nullptr, swap_chain);
+    return vkCreateSwapchainKHR(volkGetLoadedDevice(), &create_info, &callbacks, swap_chain);
 }
 
 namespace LunaVoxalEngine::Renderer
@@ -200,20 +205,45 @@ namespace LunaVoxalEngine::Renderer
 SwapChain::SwapChain(const Device *device, void *native_window)
 {
 #if defined(ON_WINDOWS) || defined(ON_XBOX)
-    if (auto result = vkCreateWin32SurfaceKHR(volkGetLoadedInstance(), nullptr, nullptr, &surface);
+    struct win32_native
+    {
+        HINSTANCE hinstance;
+        HWND hwnd;
+    } *native_window_ = static_cast<struct win32_native *>(native_window);
+
+    VkWin32SurfaceCreateInfoKHR create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    create_info.pNext = nullptr;
+    create_info.flags = 0;
+    create_info.hinstance = native_window_->hinstance;
+    create_info.hwnd = native_window_->hwnd;
+
+    if (auto result = vkCreateWin32SurfaceKHR(volkGetLoadedInstance(), &create_info, &callbacks, &surface);
         result != VK_SUCCESS)
     {
-        Log::error("Failed to create win32 surface");
+        Log::error("Failed to create win32 surface %s", string_VkResult(result));
     }
 #endif
 #if defined(ON_ANDROID)
-    if (auto result = vkCreateAndroidSurfaceKHR(volkGetLoadedInstance(), nullptr, nullptr, &surface);
+    struct android_native
+    {
+        ANativeWindow *native_window;
+    } *native_window_ = static_cast<struct android_native *>(native_window);
+
+    VkAndroidSurfaceCreateInfoKHR create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    create_info.pNext = nullptr;
+    create_info.flags = 0;
+    create_info.window = native_window_->native_window;
+
+    if (auto result = vkCreateAndroidSurfaceKHR(volkGetLoadedInstance(), &create_info, &callbacks, &surface);
         result != VK_SUCCESS)
     {
         Log::error("Failed to create android surface");
     }
 #endif
 #if defined(ON_LINUX)
+#if defined(USE_WAYLAND)
     struct wayland_native
     {
         struct wl_display *display;
@@ -227,11 +257,31 @@ SwapChain::SwapChain(const Device *device, void *native_window)
     create_info.display = native_window_->display;
     create_info.surface = native_window_->surface;
 
-    if (auto result = vkCreateWaylandSurfaceKHR(volkGetLoadedInstance(), &create_info, nullptr, &surface);
+    if (auto result = vkCreateWaylandSurfaceKHR(volkGetLoadedInstance(), &create_info, &callbacks, &surface);
         result != VK_SUCCESS)
     {
         Log::error("Failed to create wayland surface %s", string_VkResult(result));
     }
+    #else
+    struct xcb_native
+    {
+        xcb_connection_t *connection;
+        xcb_window_t window;
+    } *native_window_ = static_cast<struct xcb_native *>(native_window);
+
+    VkXcbSurfaceCreateInfoKHR create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+    create_info.pNext = nullptr;
+    create_info.flags = 0;
+    create_info.connection = native_window_->connection;
+    create_info.window = native_window_->window;
+
+    if (auto result = vkCreateXcbSurfaceKHR(volkGetLoadedInstance(), &create_info, &callbacks, &surface);
+        result != VK_SUCCESS)
+    {
+        Log::error("Failed to create xcb surface");
+    }
+    #endif
 #endif
     if (auto result = create_swap_chain(device, &swap_chain, surface); result != VK_SUCCESS)
     {
@@ -249,12 +299,12 @@ void SwapChain::resize(const Device *device)
 #endif
     auto old_swap_chain = swap_chain;
     create_swap_chain(device, &swap_chain, surface);
-    vkDestroySwapchainKHR(volkGetLoadedDevice(), old_swap_chain, nullptr);
+    vkDestroySwapchainKHR(volkGetLoadedDevice(), old_swap_chain, &callbacks);
 }
 
 SwapChain::~SwapChain()
 {
-    vkDestroySwapchainKHR(volkGetLoadedDevice(), swap_chain, nullptr);
-    vkDestroySurfaceKHR(volkGetLoadedInstance(), surface, nullptr);
+    vkDestroySwapchainKHR(volkGetLoadedDevice(), swap_chain, &callbacks);
+    vkDestroySurfaceKHR(volkGetLoadedInstance(), surface, &callbacks);
 }
 } // namespace LunaVoxalEngine::Renderer

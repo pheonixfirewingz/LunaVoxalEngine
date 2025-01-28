@@ -9,7 +9,6 @@ bool Runtime::Init(Utils::Vector<Utils::String> args) noexcept
     window->show();
     device = new Renderer::Device(true);
     swap_chain = new Renderer::SwapChain(device, window->getvulkanLink());
-    getGlobalMemoryManager()->reportStats();
     return false;
 }
 
@@ -28,6 +27,5 @@ void Runtime::Shutdown() noexcept
     delete swap_chain;
     delete device;
     delete window;
-    getGlobalMemoryManager()->reportLeaks();
 }
 } // namespace LunaVoxalEngine::Platform

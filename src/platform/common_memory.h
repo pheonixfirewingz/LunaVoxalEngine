@@ -1,59 +1,67 @@
-// common_memory.h
-#ifndef MEMORY_H
-#define MEMORY_H
+#pragma once
+#include <cstddef>
+#include <platform/thread.h>
 
-namespace LunaVoxalEngine::Platform
-{
-class MemoryManager
-{
-  private:
-    static const unsigned long NUM_BUCKETS = 32;
-    static const unsigned long MIN_ALLOC = 16;
+namespace LunaVoxalEngine::Platform {
 
-    struct AllocationInfo;
-    struct Block;
-    struct Bucket;
-    struct Chunk;
+class MemoryManager {
+private:
+    struct Block {
+        size_t size;
+        bool used;
+        Block* next;
+        size_t alignment;
+    };
 
-    Chunk* chunks;
-    Bucket* buckets;
-    AllocationInfo* allocations;
-    unsigned long totalAllocated;
-    unsigned long peakAllocation;
-    unsigned long allocationCount;
-    unsigned long defragThreshold;
-    unsigned long allocsSinceDefrag;
+    struct Pool {
+        size_t total_size;
+        Block* first_block;
+        Pool* next_pool;
+    };
 
-    void initBuckets();
-    unsigned long getBucketIndex(unsigned long size);
-    unsigned long align(unsigned long n);
-    void allocateChunkToBucket(unsigned long bucket_index);
-    void trackAllocation(Block* block, const char* file, int line);
-    void untrackAllocation(Block* block);
-    void compactChunk(Chunk* chunk);
-    void updatePointers(void* oldBase, void* newBase, unsigned long size);
-    unsigned long alignAddress(unsigned long address, unsigned long alignment);
-    Block* allocateAlignedBlock(unsigned long size, unsigned long alignment, unsigned long bucket_index);
+    static const size_t MIN_ALLOC = 64;
+    static const size_t POOL_SIZE = 8192;
+    static const size_t DEFAULT_ALIGN = sizeof(void*);
 
-  public:
-    MemoryManager();
-    ~MemoryManager();
-
-    // Delete copy constructor and assignment operator
+    Pool* pools;
+    size_t total_allocated;
+    size_t total_used;
+    Mutex pool_mutex;
+    // Prevent copying
     MemoryManager(const MemoryManager&) = delete;
     MemoryManager& operator=(const MemoryManager&) = delete;
 
-    void* allocate(unsigned long size, const char* file = "unknown", int line = 0);
-    void* allocateAligned(unsigned long size, unsigned long alignment, const char* file = "unknown", int line = 0);
+    // Internal allocation helpers
+    void* align_address(void* ptr, size_t alignment);
+    size_t align_size(size_t size, size_t alignment);
+    Pool* create_pool(size_t min_size);
+    Block* find_block(size_t size, size_t alignment);
+    void coalesce();
+
+public:
+    MemoryManager();
+    ~MemoryManager();
+    static MemoryManager& get_instance();
+
+    void* allocate(size_t size, size_t alignment = DEFAULT_ALIGN);
     void deallocate(void* ptr);
-    void reportStats();
-    void reportLeaks();
-    void defragment();
+
+    // Memory usage statistics
+    size_t get_total_allocated() const { return total_allocated; }
+    size_t get_total_used() const { return total_used; }
+    float get_fragmentation() const {
+        return total_allocated > 0 ? 
+            1.0f - ((float)total_used / total_allocated) : 0.0f;
+    }
+
+    // Operator new/delete interface
+    static void* operator_new(size_t size);
+    static void* operator_new_aligned(size_t size, size_t alignment);
+    static void* operator_new_array(size_t size);
+    static void operator_delete(void* ptr) noexcept;
+    static void operator_delete_array(void* ptr) noexcept;
 };
 
-MemoryManager* getGlobalMemoryManager();
-void* os_calloc(unsigned long num, unsigned long size);
+void* os_malloc(size_t size);
 void os_free(void* ptr);
-} // namespace LunaVoxalEngine::Platform
-
-#endif
+}

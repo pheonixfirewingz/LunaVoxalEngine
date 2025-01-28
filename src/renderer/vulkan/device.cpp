@@ -1,7 +1,7 @@
-#include <platform/common_memory.h>
 #include <platform/log.h>
 #include <renderer/vulkan/device.h>
 #include <utils/string.h>
+#include <utils/new.h>
 
 using namespace LunaVoxalEngine;
 
@@ -38,16 +38,21 @@ const char *scopeToString(VkSystemAllocationScope scope)
         return "VK_SYSTEM_ALLOCATION_SCOPE_UNKNOWN";
     }
 }
-
 void *VKAPI_PTR customAllocation(void *pUserData, size_t size, size_t alignment,
                                  VkSystemAllocationScope allocationScope)
 {
-    return Platform::getGlobalMemoryManager()->allocateAligned(size,alignment, scopeToString(allocationScope), __LINE__);
+    // Ensure alignment is at least the default alignment
+    if (alignment < alignof(std::max_align_t)) {
+        alignment = alignof(std::max_align_t);
+    }
+
+    return ::operator new(size, std::align_val_t(alignment));
 }
+
 
 void VKAPI_PTR customFree(void *pUserData, void *pMemory)
 {
-    Platform::getGlobalMemoryManager()->deallocate(pMemory);
+    ::operator delete(pMemory);
 }
 
 void *VKAPI_PTR customReallocation(void *pUserData, void *pOriginal, size_t size, size_t alignment,

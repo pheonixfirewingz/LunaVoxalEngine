@@ -1,472 +1,305 @@
 // common_memory.cpp
+#include <cstdint>
 #include <platform/common_memory.h>
-#include <utils/algoritom.h>
 #include <platform/log.h>
+#include <utils/algoritom.h>
 
 namespace LunaVoxalEngine::Platform
 {
-static MemoryManager manager;
-
-MemoryManager* getGlobalMemoryManager()
-{
-    return &manager;
-}
-
-struct MemoryManager::AllocationInfo
-{
-    void* ptr;
-    unsigned long size;
-    const char* file;
-    int line;
-    AllocationInfo* next;
-};
-
-struct MemoryManager::Block
-{
-    Block* next;
-    unsigned long size;
-    unsigned long bucket_index;
-    AllocationInfo* info;
-};
-
-struct MemoryManager::Bucket
-{
-    Block* free_blocks;
-    unsigned long block_size;
-    unsigned long num_blocks;
-    unsigned long max_blocks;
-};
-
-struct MemoryManager::Chunk
-{
-    Chunk* next;
-    char* memory;
-    unsigned long size;
-    unsigned long used;
-};
+static MemoryManager instance;
 
 MemoryManager::MemoryManager()
-    : chunks(nullptr)
-    , allocations(nullptr)
-    , totalAllocated(0)
-    , peakAllocation(0)
-    , allocationCount(0)
-    , defragThreshold(1000)
-    , allocsSinceDefrag(0)
+    : pools(nullptr)
+    , total_allocated(0)
+    , total_used(0)
 {
-    buckets = (Bucket*)os_calloc(NUM_BUCKETS, sizeof(Bucket));
-    initBuckets();
 }
 
 MemoryManager::~MemoryManager()
 {
-    reportLeaks();
-
-    while (allocations)
+    // We need to clean up all the pools that have been allocated.
+    // We start by keeping track of the current pool and the next pool in the list.
+    // This is done so that we can deallocate the current pool without losing track of the next one.
+    Pool *current = pools;
+    while (current)
     {
-        AllocationInfo* next = allocations->next;
-        os_free(allocations);
-        allocations = next;
+        // Store the next pool in the list in case we need to free it later.
+        Pool *next = current->next_pool;
+
+        // Free the memory block for the current pool.
+        // This memory was allocated in the create_pool function.
+        os_free(current->first_block);
+
+        // Free the memory for the current pool itself.
+        // This memory was also allocated in the create_pool function.
+        os_free(current);
+
+        // Move on to the next pool in the list.
+        current = next;
     }
 
-    while (chunks)
+    // We've finished cleaning up all the pools, so we can reset the first pool to nullptr.
+    pools = nullptr;
+}
+
+MemoryManager &MemoryManager::get_instance()
+{
+    return instance;
+}
+
+// This function takes a pointer to a memory address and an alignment value.
+// It returns a new pointer that is aligned to the specified alignment.
+// The new pointer is calculated by adding the alignment minus one to the
+// original pointer, and then using a bitwise AND with the negated alignment
+// to clear the lower bits. This effectively rounds the address up to the
+// next multiple of the alignment.
+// The reason for adding alignment minus one is to ensure that any remainder
+// when dividing by the alignment is accounted for, effectively rounding up.
+// The bitwise AND with the negated alignment helps to clear the lower bits,
+// making the result a multiple of the alignment.
+void *MemoryManager::align_address(void *ptr, size_t alignment)
+{
+    // Calculate the aligned address by adding the alignment minus one
+    // to the original address. This ensures that any remainder when
+    // dividing by the alignment is accounted for, effectively
+    // rounding up to the next multiple of the alignment.
+    // The bitwise AND with the negated alignment helps to clear
+    // the lower bits, making the result a multiple of the alignment.
+    return reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(ptr) + (alignment - 1) & ~(alignment - 1));
+}
+
+// This function aligns the given size to the specified alignment.
+// It returns the smallest size that is a multiple of the alignment
+// and greater than or equal to the original size.
+size_t MemoryManager::align_size(size_t size, size_t alignment)
+{
+    // Calculate the aligned size by adding the alignment minus one
+    // to the original size. This ensures that any remainder when
+    // dividing by the alignment is accounted for, effectively
+    // rounding up to the next multiple of the alignment.
+    // The bitwise AND with the negated alignment helps to clear
+    // the lower bits, making the result a multiple of the alignment.
+    return (size + alignment - 1) & ~(alignment - 1);
+}
+
+MemoryManager::Pool *MemoryManager::create_pool(size_t min_size)
+{
+    // Determine the pool size, which is the maximum of the requested minimum size and a predefined constant.
+    size_t pool_size = Utils::max(min_size, POOL_SIZE);
+
+    // Allocate memory for the entire pool structure, which includes the pool metadata and the memory blocks.
+    Pool *pool = reinterpret_cast<Pool *>(os_malloc(sizeof(Pool) + pool_size));
+
+    // If the allocation failed, return nullptr to indicate an error.
+    if (!pool) 
+        return nullptr;
+
+    // Initialize the pool's total size with the calculated pool size.
+    pool->total_size = pool_size;
+
+    // Set the next pool pointer to nullptr, indicating that this is the last pool in the list for now.
+    pool->next_pool = nullptr;
+
+    // Initialize the first block in the pool to point to the memory immediately following the pool metadata.
+    pool->first_block = reinterpret_cast<Block *>(pool + 1);
+
+    // Set the size of the first block to the remaining memory after accounting for the block's metadata.
+    pool->first_block->size = pool_size - sizeof(Block);
+
+    // Mark the first block as unused initially.
+    pool->first_block->used = false;
+
+    // Set the pointer to the next block to nullptr as there are no more blocks yet.
+    pool->first_block->next = nullptr;
+
+    // Set the alignment of the block to the default alignment.
+    pool->first_block->alignment = DEFAULT_ALIGN;
+
+    // Update the total allocated memory size by adding the pool size.
+    total_allocated += pool_size;
+
+    // Return the pointer to the newly created pool.
+    return pool;
+}
+
+MemoryManager::Block *MemoryManager::find_block(size_t size, size_t alignment) noexcept
+{
+    // Find a block of memory that is free and large enough to satisfy
+    // the allocation request.
+    for (Pool *pool = pools; pool; pool = pool->next_pool)
     {
-        Chunk* next = chunks->next;
-        os_free(chunks);
-        chunks = next;
-    }
-
-    os_free(buckets);
-}
-
-void MemoryManager::initBuckets()
-{
-    unsigned long size = MIN_ALLOC;
-    static const unsigned long CHUNK_SIZE = 64 * 1024; // 64KB chunks
-
-    for (unsigned long i = 0; i < NUM_BUCKETS; i++)
-    {
-        buckets[i].block_size = size;
-        buckets[i].free_blocks = nullptr;
-        buckets[i].num_blocks = 0;
-        buckets[i].max_blocks = CHUNK_SIZE / size;
-
-        if (size < 256)
-            size *= 2;
-        else if (size < 1024)
-            size += 256;
-        else if (size < 4096)
-            size += 1024;
-        else
-            size *= 2;
-    }
-}
-
-unsigned long MemoryManager::getBucketIndex(unsigned long size)
-{
-    for (unsigned long i = 0; i < NUM_BUCKETS; i++)
-    {
-        if (size <= buckets[i].block_size)
-            return i;
-    }
-    return NUM_BUCKETS - 1;
-}
-
-unsigned long MemoryManager::align(unsigned long n)
-{
-    static const unsigned long ALIGNMENT = 8;
-    return (n + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
-}
-
-unsigned long MemoryManager::alignAddress(unsigned long address, unsigned long alignment)
-{
-    return (address + (alignment - 1)) & ~(alignment - 1);
-}
-
-void MemoryManager::allocateChunkToBucket(unsigned long bucket_index)
-{
-    static const unsigned long CHUNK_SIZE = 64 * 1024;
-    unsigned long block_size = buckets[bucket_index].block_size;
-
-    Chunk* chunk = (Chunk*)os_calloc(1, CHUNK_SIZE);
-    if (!chunk)
-        return;
-
-    chunk->memory = (char*)(chunk + 1);
-    chunk->size = CHUNK_SIZE - sizeof(Chunk);
-    chunk->used = 0;
-    chunk->next = chunks;
-    chunks = chunk;
-
-    char* curr = chunk->memory;
-    char* end = curr + chunk->size;
-    while (curr + block_size <= end)
-    {
-        Block* block = (Block*)curr;
-        block->size = block_size;
-        block->bucket_index = bucket_index;
-        block->next = buckets[bucket_index].free_blocks;
-        buckets[bucket_index].free_blocks = block;
-        buckets[bucket_index].num_blocks++;
-        curr += block_size;
-    }
-}
-
-MemoryManager::Block* MemoryManager::allocateAlignedBlock(unsigned long size, unsigned long alignment, unsigned long bucket_index)
-{
-    Block* block = buckets[bucket_index].free_blocks;
-    while (block)
-    {
-        unsigned long blockAddress = (unsigned long)(block + 1);
-        unsigned long alignedAddress = alignAddress(blockAddress, alignment);
-        unsigned long adjustment = alignedAddress - blockAddress;
-
-        if (block->size >= size + adjustment)
+        // Iterate through all the blocks in the pool.
+        Block *block = pool->first_block;
+        while (block)
         {
-            buckets[bucket_index].free_blocks = block->next;
-            buckets[bucket_index].num_blocks--;
+            // Calculate the address of the aligned block.
+            void *aligned_addr = align_address(block + 1, alignment);
 
-            if (adjustment > 0)
+            // Calculate the offset between the aligned address and the
+            // start of the block. This is the amount of memory that will
+            // be wasted if we use this block.
+            auto const offset = reinterpret_cast<char *>(aligned_addr) - reinterpret_cast<char *>(block + 1);
+
+            // Check if the block is large enough to satisfy the allocation
+            // request, and if the block is not already used.
+            if (block->size >= size + offset && !block->used)
             {
-                Block* alignedBlock = (Block*)((char*)block + adjustment);
-                alignedBlock->size = block->size - adjustment;
-                alignedBlock->bucket_index = bucket_index;
-                alignedBlock->info = nullptr;
-
-                if (adjustment >= sizeof(Block) + MIN_ALLOC)
-                {
-                    block->size = adjustment;
-                    block->next = buckets[bucket_index].free_blocks;
-                    buckets[bucket_index].free_blocks = block;
-                    buckets[bucket_index].num_blocks++;
-                }
-                else
-                {
-                    alignedBlock->next = buckets[bucket_index].free_blocks;
-                    buckets[bucket_index].free_blocks = alignedBlock;
-                }
-
-                return alignedBlock;
+                // If the block is large enough, return it.
+                return block;
             }
 
-            return block;
+            // Move on to the next block in the linked list.
+            block = block->next;
         }
-        block = block->next;
     }
-
+    // If no free block was found, return nullptr.
     return nullptr;
 }
 
-void MemoryManager::trackAllocation(Block* block, const char* file, int line)
+void MemoryManager::coalesce()
 {
-    AllocationInfo* info = (AllocationInfo*)os_calloc(1, sizeof(AllocationInfo));
-    if (!info)
-        return;
-
-    info->ptr = (void*)(block + 1);
-    info->size = block->size - sizeof(Block);
-    info->file = file;
-    info->line = line;
-    info->next = allocations;
-    allocations = info;
-    block->info = info;
-
-    totalAllocated += info->size;
-    allocationCount++;
-    if (totalAllocated > peakAllocation)
+    // Iterate through all the pools.
+    for (Pool *pool = pools; pool; pool = pool->next_pool)
     {
-        peakAllocation = totalAllocated;
-    }
-}
-
-void MemoryManager::untrackAllocation(Block* block)
-{
-    AllocationInfo** pp = &allocations;
-    while (*pp)
-    {
-        if ((*pp)->ptr == (void*)(block + 1))
+        // Iterate through all the blocks in the pool.
+        Block *block = pool->first_block;
+        while (block && block->next)
         {
-            AllocationInfo* info = *pp;
-            *pp = info->next;
-            totalAllocated -= info->size;
-            allocationCount--;
-            os_free(info);
-            return;
+            // If the current block is used or the next block is used, we can't coalesce them.
+            if (block->used || block->next->used)
+            {
+                // Just move on to the next block.
+                block = block->next;
+            }
+            else
+            {
+                // We can coalesce them, so add the size of the next block to the current block.
+                block->size += sizeof(Block) + block->next->size;
+
+                // Then, make the next block of the current block point to the block after the next block.
+                block->next = block->next->next;
+            }
         }
-        pp = &(*pp)->next;
     }
 }
 
-void* MemoryManager::allocate(unsigned long size, const char* file, int line)
+void *MemoryManager::allocate(size_t size, size_t alignment)
 {
-    allocsSinceDefrag++;
-    if (allocsSinceDefrag >= defragThreshold)
-    {
-        defragment();
-    }
-
+    // If the size of the allocation is 0, just return nullptr.
     if (size == 0)
         return nullptr;
 
-    size = align(size + sizeof(Block));
-    unsigned long bucket_index = getBucketIndex(size);
+    // Calculate the size of the allocation, taking into account the alignment.
+    size = align_size(size, alignment);
 
-    if (buckets[bucket_index].free_blocks)
-    {
-        Block* block = buckets[bucket_index].free_blocks;
-        buckets[bucket_index].free_blocks = block->next;
-        buckets[bucket_index].num_blocks--;
-        trackAllocation(block, file, line);
-        return (void*)(block + 1);
-    }
+    // Lock the mutex to ensure that only one thread can access the pool at any given time.
+    Platform::GuardLock lock(pool_mutex);
 
-    allocateChunkToBucket(bucket_index);
+    // Search the pools for a free block that is large enough to satisfy the allocation.
+    Block *block = find_block(size, alignment);
 
-    if (buckets[bucket_index].free_blocks)
-    {
-        Block* block = buckets[bucket_index].free_blocks;
-        buckets[bucket_index].free_blocks = block->next;
-        buckets[bucket_index].num_blocks--;
-        trackAllocation(block, file, line);
-        return (void*)(block + 1);
-    }
-
-    return nullptr;
-}
-
-void* MemoryManager::allocateAligned(unsigned long size, unsigned long alignment, const char* file, int line)
-{
-    allocsSinceDefrag++;
-    if (allocsSinceDefrag >= defragThreshold)
-    {
-        defragment();
-    }
-
-    if (size == 0)
-    {
-        return nullptr;
-    }
-
-    // Ensure alignment is a power of 2
-    if (alignment == 0 || (alignment & (alignment - 1)) != 0)
-    {
-        Log::debug("Alignment must be a power of 2");
-        return nullptr;
-    }
-
-    // Ensure alignment is at least as strict as the default alignment
-    alignment = Utils::max(alignment, (unsigned long)8);
-
-    // Calculate the total size needed including potential padding
-    unsigned long totalSize = size + alignment + sizeof(Block);
-    unsigned long bucket_index = getBucketIndex(totalSize);
-
-    // Try to allocate from existing blocks
-    Block* block = allocateAlignedBlock(totalSize, alignment, bucket_index);
-    
+    // If no free block was found, we need to create a new pool.
     if (!block)
     {
-        // Allocate a new chunk and try again
-        allocateChunkToBucket(bucket_index);
-        block = allocateAlignedBlock(totalSize, alignment, bucket_index);
-        
-        if (!block)
-        {
+        // Create a new pool that is large enough to satisfy the allocation.
+        Pool *new_pool = create_pool(size + sizeof(Block));
+
+        // If the new pool couldn't be created, return nullptr.
+        if (!new_pool)
             return nullptr;
-        }
+
+        // Add the new pool to the front of the list of pools.
+        new_pool->next_pool = pools;
+        pools = new_pool;
+
+        // Set the block to the first block in the new pool.
+        block = new_pool->first_block;
     }
 
-    trackAllocation(block, file, line);
-    return (void*)(block + 1);
+    // Calculate the address of the aligned block.
+    void *aligned_addr = align_address(block + 1, alignment);
+
+    // Calculate the offset between the aligned address and the start of the block.
+    size_t offset = (char *)aligned_addr - (char *)(block + 1);
+
+    // Mark the block as used.
+    block->used = true;
+
+    // Store the alignment in the block header.
+    block->alignment = alignment;
+
+    // Update the total amount of used memory.
+    total_used += size;
+
+    // Return the aligned address.
+    return aligned_addr;
 }
 
-void MemoryManager::deallocate(void* ptr)
+void MemoryManager::deallocate(void *ptr)
 {
+    // This function is called when someone wants to deallocate some memory.
+    // This memory is represented by a pointer 'ptr'.
     if (!ptr)
         return;
-    Block* block = ((Block*)ptr) - 1;
-    unsigned long bucket_index = block->bucket_index;
-    untrackAllocation(block);
 
-    Utils::memset(ptr, 0, block->size - sizeof(Block));
+    // We subtract 1 from the pointer to get to the address of the block that
+    // contains the information about the size of the block.
+    Block *block = ((Block *)ptr) - 1;
 
-    if (buckets[bucket_index].num_blocks < buckets[bucket_index].max_blocks)
     {
-        block->next = buckets[bucket_index].free_blocks;
-        buckets[bucket_index].free_blocks = block;
-        buckets[bucket_index].num_blocks++;
+        // We lock the mutex to ensure that only one thread can access the pool
+        // at any given time.
+        Platform::GuardLock lock(pool_mutex);
+
+        // We mark the block as unused.
+        block->used = false;
+
+        // We subtract the size of the block from the total amount of used memory.
+        total_used -= block->size;
+    }
+
+    // We call coalesce to merge the deallocated block with any adjacent free
+    // blocks.
+    coalesce();
+}
+
+// Static operator new/delete implementations
+void *MemoryManager::operator_new(size_t size)
+{
+    return get_instance().allocate(size);
+}
+
+void *MemoryManager::operator_new_aligned(size_t size, size_t alignment)
+{
+    return get_instance().allocate(size, alignment);
+}
+
+void *MemoryManager::operator_new_array(size_t size)
+{
+    size_t *ptr = (size_t *)get_instance().allocate(size + sizeof(size_t));
+    if (ptr)
+    {
+        *ptr = size;
+        return (ptr + 1);
+    }
+    return nullptr;
+}
+
+void MemoryManager::operator_delete(void *ptr) noexcept
+{
+    if (ptr)
+    {
+        get_instance().deallocate(ptr);
     }
 }
 
-void MemoryManager::defragment()
+void MemoryManager::operator_delete_array(void *ptr) noexcept
 {
-    allocsSinceDefrag = 0;
-    return;
-    //TODO: this basiclly soft locks the engine for an infinite amount of time for defragmentation this is not good
-    unsigned long freeBlocks = 0;
-    for (unsigned long i = 0; i < NUM_BUCKETS; i++)
+    if (ptr)
     {
-        freeBlocks += buckets[i].num_blocks;
+        size_t *size_ptr = ((size_t *)ptr) - 1;
+        get_instance().deallocate(size_ptr);
     }
-
-    Chunk* chunk = chunks;
-    while (chunk)
-    {
-        compactChunk(chunk);
-        chunk = chunk->next;
-    }
-
-    unsigned long finalFreeBlocks = 0;
-    for (unsigned long i = 0; i < NUM_BUCKETS; i++)
-    {
-        finalFreeBlocks += buckets[i].num_blocks;
-    }
-    allocsSinceDefrag = 0;
-    Log::debug("Defragmentation complete:");
-    Log::debug("- Initial free blocks: %zu", freeBlocks);
-    Log::debug("- Final free blocks: %zu", finalFreeBlocks);
-    Log::debug("- Blocks consolidated: %zu", freeBlocks - finalFreeBlocks);
-}
-
-void MemoryManager::compactChunk(Chunk* chunk)
-{
-    char* start = chunk->memory;
-    char* end = start + chunk->size;
-    char* writePtr = start;
-    
-    Block* curr = (Block*)start;
-    while ((char*)curr < end)
-    {
-        if (curr->info)
-        {
-            unsigned long blockSize = curr->size;
-            if ((char*)curr != writePtr)
-            {
-                void* oldLocation = (void*)(curr + 1);
-                void* newLocation = (void*)(((Block*)writePtr) + 1);
-                
-                Utils::memmove(writePtr, curr, blockSize);
-                
-                updatePointers(oldLocation, newLocation, blockSize - sizeof(Block));
-            }
-            writePtr += curr->size;
-        }
-        curr = (Block*)((char*)curr + curr->size);
-    }
-    
-    if (writePtr < end)
-    {
-        Block* freeBlock = (Block*)writePtr;
-        freeBlock->size = end - writePtr;
-        freeBlock->info = nullptr;
-        freeBlock->bucket_index = getBucketIndex(freeBlock->size);
-        
-        freeBlock->next = buckets[freeBlock->bucket_index].free_blocks;
-        buckets[freeBlock->bucket_index].free_blocks = freeBlock;
-        buckets[freeBlock->bucket_index].num_blocks++;
-    }
-}
-
-void MemoryManager::updatePointers(void* oldBase, void* newBase, unsigned long size)
-{
-    for (AllocationInfo* curr = allocations; curr; curr = curr->next)
-    {
-        if (curr->ptr >= oldBase && curr->ptr < (char*)oldBase + size)
-        {
-            curr->ptr = (void*)((char*)curr->ptr - (char*)oldBase + (char*)newBase);
-        }
-    }
-}
-
-void MemoryManager::reportStats()
-{
-    Log::debug("Memory Manager Statistics:");
-    Log::debug("-------------------------");
-    Log::debug("Active allocations: %zu", allocationCount);
-    Log::debug("Total allocated: %zu bytes", totalAllocated);
-    Log::debug("Peak allocation: %zu bytes", peakAllocation);
-
-    Log::debug("\nBucket Statistics:");
-    for (unsigned long i = 0; i < NUM_BUCKETS; i++)
-    {
-        if (buckets[i].num_blocks > 0)
-        {
-            Log::debug("Bucket %zu (%zu bytes): %zu free blocks", 
-                      i, 
-                      buckets[i].block_size, 
-                      buckets[i].num_blocks);
-        }
-    }
-
-    // Add aligned allocation statistics
-    Log::debug("Alignment Statistics:");
-    Log::debug("Last defrag: %zu allocations ago", allocsSinceDefrag);
-}
-
-void MemoryManager::reportLeaks()
-{
-    if (!allocations)
-    {
-        Log::debug("\nNo memory leaks detected.\n");
-        return;
-    }
-
-    Log::debug("Memory Leaks Detected:");
-    Log::debug("---------------------");
-    unsigned long totalLeaked = 0;
-    unsigned long leakCount = 0;
-
-    AllocationInfo* curr = allocations;
-    while (curr)
-    {
-        Log::debug("Leak: %zu bytes at %p", curr->size, curr->ptr);
-        Log::debug("  Allocated in %s, line %d", curr->file, curr->line);
-        totalLeaked += curr->size;
-        leakCount++;
-        curr = curr->next;
-    }
-
-    Log::debug("Total: %zu leaks, %zu bytes", leakCount, totalLeaked);
 }
 
 } // namespace LunaVoxalEngine::Platform
