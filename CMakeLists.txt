@@ -1,20 +1,23 @@
 cmake_minimum_required(VERSION 3.20)
-project(LunaVoxalEngine VERSION 1.0)
+project(LunaVoxalEngine VERSION 1.0 LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Project Configuration
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Options
-option(ENABLE_VULKAN "Enable Vulkan renderer" ON)
 option(USE_WAYLAND "Use Wayland on Linux (otherwise X11)" ON)
 option(ENABLE_MOBILE_PLATFORMS "Build for mobile platforms" OFF)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG)
+endif()
+
+if(LINUX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nodefaultlibs -lc -fno-exceptions")
 endif()
 
 # Detect platform and set platform-specific variables
@@ -47,15 +50,9 @@ file(GLOB PLATFORM_SOURCES
     "src/platform/common_*.*"
 )
 
-# Gather common platform sources
-file(GLOB COMMON_PLATFORM_SOURCES 
-    "src/platform/platform.h"
-    "src/platform/platform_layer.cpp"
-)
-
 # Gather renderer sources
 file(GLOB RENDERER_SOURCES
-    "src/renderer/vulkan/*.h" 
+    "src/renderer/vulkan/*.h"
     "src/renderer/vulkan/*.cpp"
     "src/renderer/*.h" 
     "src/renderer/*.cpp"
@@ -63,7 +60,11 @@ file(GLOB RENDERER_SOURCES
 )
 
 # Gather main sources
-file(GLOB MAIN_SOURCES)
+file(GLOB MAIN_SOURCES
+    "src/utils/string.h"
+    "src/utils/string.cpp"
+    "src/utils/algorithm.h"
+)
 
 # Platform-specific libraries
 if(WIN32)
@@ -129,7 +130,6 @@ endif()
 # Main executable
 add_executable(${PROJECT_NAME}
     ${MAIN_SOURCES}
-    ${COMMON_PLATFORM_SOURCES}
     ${PLATFORM_SOURCES}
     ${RENDERER_SOURCES}
 )
@@ -138,19 +138,18 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE 
     "src/renderer/third_party/vk_headers/include"
     "src/renderer/third_party/volk"
+    "src/renderer/third_party/vma/include"
     ${PLATFORM_INCLUDES}
     src
 )
-
-# Compile definitions
-if(ENABLE_VULKAN)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_VULKAN)
-endif()
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME}
     ${PLATFORM_LIBS}
 )
+if(LINUX OR APPLE)
+    target_link_libraries(${PROJECT_NAME} pthread)
+endif()
 
 # Install configuration
 install(TARGETS ${PROJECT_NAME}

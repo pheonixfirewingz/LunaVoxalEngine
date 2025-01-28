@@ -13,7 +13,10 @@
             "cStandard": "c17",
             "intelliSenseMode": "linux-gcc-x64",
             "cppStandard": "c++17",
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "compilerArgs": [
+                "-nodefaultlibs -lc -fno-exceptions"
+            ]
         },
         {
             "name": "Windows",
