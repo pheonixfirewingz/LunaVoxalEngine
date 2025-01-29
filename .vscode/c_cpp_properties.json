@@ -16,7 +16,8 @@
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
             "compilerArgs": [
                 "-nodefaultlibs -lc -fno-exceptions"
-            ]
+            ],
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "Windows",
