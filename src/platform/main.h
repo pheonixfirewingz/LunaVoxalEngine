@@ -31,7 +31,7 @@ class Runtime final
     }
 
   private:
-    Window::Window *window;
+    Window *window;
     Renderer::Device *device;
     Renderer::SwapChain *swap_chain;
 };

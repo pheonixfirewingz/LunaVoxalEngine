@@ -141,7 +141,7 @@ VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentM
 }
 
 static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *device, VkSwapchainKHR *swap_chain,
-                                  VkSurfaceKHR surface) noexcept
+                                  VkSurfaceKHR surface, VkFormat *format, VkExtent2D *extent) noexcept
 {
     // Query surface capabilities, formats, and present modes first
     VkSurfaceCapabilitiesKHR capabilities;
@@ -191,6 +191,7 @@ static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *devic
         create_info.queueFamilyIndexCount = 0;
         create_info.pQueueFamilyIndices = nullptr;
     }
+
     create_info.preTransform = capabilities.currentTransform;
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     create_info.presentMode = chooseSwapPresentMode(present_modes, present_mode_count);
@@ -202,7 +203,27 @@ static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *devic
 
 namespace LunaVoxalEngine::Renderer
 {
-SwapChain::SwapChain(const Device *device, void *native_window)
+
+VkResult SwapChain::acquireNextImage(VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex)
+{
+    return vkAcquireNextImageKHR(volkGetLoadedDevice(), swap_chain, UINT64_MAX, semaphore, fence, imageIndex);
+}
+
+VkResult SwapChain::present(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+{
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &waitSemaphore;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swap_chain;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr;
+
+    return vkQueuePresentKHR(queue, &presentInfo);
+}
+
+SwapChain::SwapChain(const Device *device, Platform::NativeWindow native_window)
 {
 #if defined(ON_WINDOWS) || defined(ON_XBOX)
     struct win32_native
@@ -232,8 +253,6 @@ SwapChain::SwapChain(const Device *device, void *native_window)
 
     VkAndroidSurfaceCreateInfoKHR create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-    create_info.pNext = nullptr;
-    create_info.flags = 0;
     create_info.window = native_window_->native_window;
 
     if (auto result = vkCreateAndroidSurfaceKHR(volkGetLoadedInstance(), &create_info, &callbacks, &surface);
@@ -243,47 +262,32 @@ SwapChain::SwapChain(const Device *device, void *native_window)
     }
 #endif
 #if defined(ON_LINUX)
-#if defined(USE_WAYLAND)
-    struct wayland_native
-    {
-        struct wl_display *display;
-        struct wl_surface *surface;
-    } *native_window_ = static_cast<struct wayland_native *>(native_window);
-
+#    if defined(USE_WAYLAND)
     VkWaylandSurfaceCreateInfoKHR create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-    create_info.pNext = nullptr;
-    create_info.flags = 0;
-    create_info.display = native_window_->display;
-    create_info.surface = native_window_->surface;
+    create_info.display = static_cast<wl_display *>(native_window.window);
+    create_info.surface = static_cast<wl_surface *>(native_window.other);
 
     if (auto result = vkCreateWaylandSurfaceKHR(volkGetLoadedInstance(), &create_info, &callbacks, &surface);
         result != VK_SUCCESS)
     {
         Log::error("Failed to create wayland surface %s", string_VkResult(result));
     }
-    #else
-    struct xcb_native
-    {
-        xcb_connection_t *connection;
-        xcb_window_t window;
-    } *native_window_ = static_cast<struct xcb_native *>(native_window);
-
+#    else
     VkXcbSurfaceCreateInfoKHR create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-    create_info.pNext = nullptr;
-    create_info.flags = 0;
-    create_info.connection = native_window_->connection;
-    create_info.window = native_window_->window;
+    create_info.connection = static_cast<xcb_connection_t *>(native_window.other);
+    create_info.window = *static_cast<xcb_window_t *>(native_window.window);
 
     if (auto result = vkCreateXcbSurfaceKHR(volkGetLoadedInstance(), &create_info, &callbacks, &surface);
         result != VK_SUCCESS)
     {
         Log::error("Failed to create xcb surface");
     }
-    #endif
+#    endif
 #endif
-    if (auto result = create_swap_chain(device, &swap_chain, surface); result != VK_SUCCESS)
+
+    if (auto result = create_swap_chain(device, &swap_chain, surface, &image_format, &extent); result != VK_SUCCESS)
     {
         Log::error("Failed to create swapchain %s", string_VkResult(result));
     }
@@ -298,7 +302,7 @@ void SwapChain::resize(const Device *device)
     }
 #endif
     auto old_swap_chain = swap_chain;
-    create_swap_chain(device, &swap_chain, surface);
+    create_swap_chain(device, &swap_chain, surface, &image_format, &extent);
     vkDestroySwapchainKHR(volkGetLoadedDevice(), old_swap_chain, &callbacks);
 }
 
@@ -307,4 +311,5 @@ SwapChain::~SwapChain()
     vkDestroySwapchainKHR(volkGetLoadedDevice(), swap_chain, &callbacks);
     vkDestroySurfaceKHR(volkGetLoadedInstance(), surface, &callbacks);
 }
+
 } // namespace LunaVoxalEngine::Renderer

@@ -1,7 +1,7 @@
 #include <platform/log.h>
 #include <renderer/vulkan/device.h>
-#include <utils/string.h>
 #include <utils/new.h>
+#include <utils/string.h>
 
 using namespace LunaVoxalEngine;
 
@@ -42,13 +42,13 @@ void *VKAPI_PTR customAllocation(void *pUserData, size_t size, size_t alignment,
                                  VkSystemAllocationScope allocationScope)
 {
     // Ensure alignment is at least the default alignment
-    if (alignment < alignof(std::max_align_t)) {
+    if (alignment < alignof(std::max_align_t))
+    {
         alignment = alignof(std::max_align_t);
     }
 
     return ::operator new(size, std::align_val_t(alignment));
 }
-
 
 void VKAPI_PTR customFree(void *pUserData, void *pMemory)
 {
@@ -226,7 +226,11 @@ Device::Device(const bool debug)
                                      VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
 #endif
 #if defined(ON_LINUX)
+#    if defined(USE_WAYLAND)
                                      VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME,
+#    else
+                                     VK_KHR_XCB_SURFACE_EXTENSION_NAME,
+#    endif
 #endif
                                      ""};
         VkInstanceCreateInfo create_info = {};

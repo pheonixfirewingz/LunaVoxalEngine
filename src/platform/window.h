@@ -2,8 +2,15 @@
 #define PLATFORM_WINDOW_H
 #include <utils/string.h>
 
-namespace LunaVoxalEngine::Platform::Window
+namespace LunaVoxalEngine::Platform
 {
+
+struct NativeWindow
+{
+  void *window;
+  void* other;
+};
+  
 class Window final
 {
   public:
@@ -14,7 +21,7 @@ class Window final
     void hide();
     void resize(unsigned int width, unsigned int height);
     bool isVisible() const;
-    void* getvulkanLink();
+    NativeWindow getVulkanLink();
     ~Window();
 
   private:
@@ -34,7 +41,7 @@ class ChildWindow final
     void hide();
     void resize(unsigned int width, unsigned int height);
     bool isVisible() const;
-    void* getvulkanLink();
+    NativeWindow getVulkanLink();
     ~ChildWindow();
 
   private:

@@ -5,10 +5,10 @@ namespace LunaVoxalEngine::Platform
 {
 bool Runtime::Init(Utils::Vector<Utils::String> args) noexcept
 {
-    window = new Window::Window(1280, 720, "LunaVoxalEngine");
+    window = new Window(1280, 720, "LunaVoxalEngine");
     window->show();
     device = new Renderer::Device(true);
-    swap_chain = new Renderer::SwapChain(device, window->getvulkanLink());
+    swap_chain = new Renderer::SwapChain(device, window->getVulkanLink());
     return false;
 }
 

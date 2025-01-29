@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Options
-option(USE_WAYLAND "Use Wayland on Linux (otherwise X11)" ON)
+option(USE_WAYLAND "Use Wayland on Linux (otherwise X11)" OFF)
 option(ENABLE_MOBILE_PLATFORMS "Build for mobile platforms" OFF)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -82,9 +82,10 @@ elseif(LINUX)
         list(APPEND PLATFORM_LIBS ${Wayland_CLIENT_LIBRARY})
         list(APPEND PLATFORM_INCLUDES ${Wayland_INCLUDE_DIR})
     else()
-        find_package(X11 REQUIRED)
-        list(APPEND PLATFORM_LIBS ${X11_LIBRARIES})
-        list(APPEND PLATFORM_INCLUDES ${X11_INCLUDE_DIR})
+        include(FindPkgConfig)
+        pkg_check_modules(XCB xcb)
+        list(APPEND PLATFORM_LIBS ${XCB_LIBRARIES})
+        list(APPEND PLATFORM_INCLUDES ${XCB_INCLUDE_DIR})
     endif()
     
     #broken see FindPipewire.cmake

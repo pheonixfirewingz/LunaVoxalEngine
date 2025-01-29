@@ -13,8 +13,9 @@ extern "C"
 }
 #else
 #    include <xcb/xcb.h>
+#include <cstdlib>
 #endif
-namespace LunaVoxalEngine::Platform::Window
+namespace LunaVoxalEngine::Platform
 {
 #ifdef USE_WAYLAND
 struct __WindowData
@@ -35,12 +36,6 @@ struct __WindowData
         , registry(registry)
     {
     }
-};
-
-struct __VulkanWayland
-{
-    wl_display *display;
-    wl_surface *surface;
 };
 
 const static wl_registry_listener registry_listener = {
@@ -176,10 +171,10 @@ bool Window::isVisible() const
     return visible;
 }
 
-void *Window::getvulkanLink()
+NativeWindow Window::getVulkanLink()
 {
     auto data = (__WindowData *)window;
-    return new __VulkanWayland{data->display, data->surface};
+    return NativeWindow{data->display, data->surface};
 }
 
 Window::~Window()
@@ -201,57 +196,58 @@ struct __WindowData
     xcb_connection_t *con;
     xcb_window_t win;
     xcb_screen_t *screen;
-    xcb_key_symbols_t *symbols;
-    losSize configured_size;
     xcb_intern_atom_reply_t *atom_wm_delete_window;
+    bool should_close = false;
 };
 
 Window::Window(unsigned int width, unsigned int height, const Utils::String &title)
 {
+    __WindowData *data = new __WindowData{};
     uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    con = xcb_connect(nullptr, nullptr);
-    screen = xcb_setup_roots_iterator(xcb_get_setup(con)).data;
+    data->con = xcb_connect(nullptr, nullptr);
+    data->screen = xcb_setup_roots_iterator(xcb_get_setup(data->con)).data;
     uint32_t values[2];
-    values[0] = screen->white_pixel;
+    values[0] = data->screen->white_pixel;
     values[1] = XCB_EVENT_MASK_EXPOSURE;
 
-    win = xcb_generate_id(con);
+    data->win = xcb_generate_id(data->con);
 
-    xcb_create_window(con, XCB_COPY_FROM_PARENT, win, screen->root, 0, 0, win_size.length_one, win_size.length_two, 0,
-                      XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, mask, values);
+    xcb_create_window(data->con, XCB_COPY_FROM_PARENT, data->win, data->screen->root, 0, 0, width, height, 0,
+                      XCB_WINDOW_CLASS_INPUT_OUTPUT, data->screen->root_visual, mask, values);
 
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(con, 1, 12, "WM_PROTOCOLS");
-    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(con, cookie, nullptr);
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(data->con, 1, 12, "WM_PROTOCOLS");
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(data->con, cookie, nullptr);
 
-    xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(con, 0, 16, "WM_DELETE_WINDOW");
-    atom_wm_delete_window = xcb_intern_atom_reply(con, cookie2, nullptr);
+    xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(data->con, 0, 16, "WM_DELETE_WINDOW");
+    data->atom_wm_delete_window = xcb_intern_atom_reply(data->con, cookie2, nullptr);
 
-    xcb_change_property(con, XCB_PROP_MODE_REPLACE, win, (*reply).atom, 4, 32, 1, &(*atom_wm_delete_window).atom);
+    xcb_change_property(data->con, XCB_PROP_MODE_REPLACE, data->win, (*reply).atom, 4, 32, 1, &(*data->atom_wm_delete_window).atom);
     free(reply);
-
-    xcb_change_property(con, XCB_PROP_MODE_REPLACE, win, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, title.size(),
-                        title.c_str());
+    auto temp = title.throw_away();
+    xcb_change_property(data->con, XCB_PROP_MODE_REPLACE, data->win, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, temp.size(),temp.c_str());
 
     /* Map the window on the screen */
-    xcb_map_window(con, win);
+    xcb_map_window(data->con, data->win);
 
     const uint32_t coords[] = {300, 150};
-    xcb_configure_window(con, win, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, coords);
+    xcb_configure_window(data->con, data->win, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, coords);
     /* Make sure commands are sent before we pause, so window is shown */
-    xcb_flush(con);
+    xcb_flush(data->con);
+    window = static_cast<void *>(data);
 }
 
 void Window::pollEvents()
 {
-    xcb_generic_event_t *event = xcb_poll_for_event(con);
+    auto data = (__WindowData *)window;
+    xcb_generic_event_t *event = xcb_poll_for_event(data->con);
     if (event == nullptr)
         return;
     switch (event->response_type & ~0x80)
     {
     case XCB_CLIENT_MESSAGE:
-        if ((*(xcb_client_message_event_t *)event).data.data32[0] == (*atom_wm_delete_window).atom)
+        if ((*(xcb_client_message_event_t *)event).data.data32[0] == (*data->atom_wm_delete_window).atom)
         {
-            should_close = true;
+            data->should_close = true;
         }
         break;
     default:
@@ -262,22 +258,36 @@ void Window::pollEvents()
 
 void Window::show()
 {
+    auto data = (__WindowData *)window;
+    xcb_map_window(data->con, data->win);
+    xcb_flush(data->con);
 }
 void Window::hide()
 {
+    auto data = (__WindowData *)window;
+    //uint32_t values[] = {XCB_STACK_BELOW};
+    //xcb_configure_window(data->con, data->win, XCB_CONFIG_WINDOW_STACK_MODE, values);
+    xcb_unmap_window(data->con, data->win);
+    xcb_flush(data->con);
 }
 void Window::resize(unsigned int width, unsigned int height)
 {
+    auto data = (__WindowData *)window;
+    unsigned int values[] = {width, height};
+    xcb_configure_window(data->con, data->win, XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, values);
+    xcb_flush(data->con);
 }
 
 bool Window::shouldClose() const
 {
-    return false;
+    auto data = (__WindowData *)window;
+    return data->should_close;
 }
 
-void Window::getvulkanLink()
+NativeWindow Window::getVulkanLink()
 {
-    return nullptr;
+    __WindowData *data = (__WindowData *)window;
+    return NativeWindow{&data->win,data->con};
 }
 
 Window::~Window()

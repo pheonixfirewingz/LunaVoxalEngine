@@ -11,13 +11,13 @@ namespace LunaVoxalEngine::Renderer
 class SwapChain final
 {
    public:
-    /**
+    SwapChain(const Device *device, Platform::NativeWindow native_window);
      * @brief Constructor
      * @details Creates a new swap chain with the given device and native window
      * @param[in] device The Vulkan device
      * @param[in] native_window The native window
      */
-    SwapChain(const Device *device, void *native_window);
+
     /**
      * @brief Resize the swap chain
      * @details Resizes the swap chain with the new device
