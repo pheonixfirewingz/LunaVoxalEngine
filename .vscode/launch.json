@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/digitech/Desktop/LunaVoxalEngine/build/LunaVoxalEngine",
+            "program": "/home/digitech/Desktop/LunaVoxelEngine/build/LunaVoxelEngine",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
@@ -22,8 +22,8 @@
                     "ignoreFailures": true
                 },
                 {
-                      "description": "Set source directories for Vulkan SDK",
-                      "text": "directory /home/digitech/vulkan/debug/Vulkan-Loader /home/digitech/vulkan/debug/Vulkan-ValidationLayers/layers"
+                    "description": "Set source directories for Vulkan SDK",
+                    "text": "directory /home/digitech/vulkan/debug/Vulkan-Loader /home/digitech/vulkan/debug/Vulkan-ValidationLayers/layers"
                 },
                 {
                     "description": "Set Disassembly Flavor to Intel",
@@ -32,6 +32,5 @@
                 }
             ]
         }
-
     ]
 }

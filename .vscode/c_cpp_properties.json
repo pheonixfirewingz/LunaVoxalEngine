@@ -21,9 +21,7 @@
         {
             "name": "Windows",
             "includePath": [
-                "${workspaceFolder}/src/**",
-                "${workspaceFolder}/src/renderer/third_party/volk-1.4.304/**",
-                "${workspaceFolder}/src/renderer/third_party/Vulkan-Headers-vulkan-sdk-1.4.304.0/include/**"
+                "${workspaceFolder}/**"
             ],
             "defines": [
                 "WIN32_LEAN_AND_MEAN",
@@ -32,14 +30,13 @@
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "intelliSenseMode": "windows-msvc-x64",
-            "compilerPathInCppPropertiesJson": "/usr/bin/gcc",
             "cppStandard": "c++17",
             "mergeConfigurations": false,
             "browse": {
                 "path": [
                     "${workspaceFolder}/src/**",
-                    "${workspaceFolder}/src/renderer/third_party/volk-1.4.304/**",
-                    "${workspaceFolder}/src/renderer/third_party/Vulkan-Headers-vulkan-sdk-1.4.304.0/include/**"
+                    "${workspaceFolder}/src/renderer/third_party/volk/**",
+                    "${workspaceFolder}/src/renderer/third_party/Vulkan-Headers/include/**"
                 ],
                 "limitSymbolsToIncludedHeaders": true
             }
