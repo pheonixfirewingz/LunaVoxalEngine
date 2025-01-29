@@ -3,41 +3,41 @@
 
 namespace LunaVoxalEngine::Utils
 {
-template<typename T> inline T clamp(T value, T min, T max)
+template<typename T> constexpr T clamp(T value, T min, T max) noexcept
 {
     return value < min ? min : (value > max ? max : value);
 }
 
-template<typename T> inline T lerp(T a, T b, float t)
+template<typename T> constexpr T lerp(T a, T b, float t) noexcept
 {
     return a + (b - a) * t;
 }
 
-template<typename T> inline T min(T a, T b)
+template<typename T> constexpr T min(T a, T b) noexcept
 {
     return a < b ? a : b;
 }
 
-template<typename T> inline T max(T a, T b)
+template<typename T> constexpr T max(T a, T b) noexcept
 {
     return a > b ? a : b;
 }
 
-template<typename T> inline T abs(T a)
+template<typename T> constexpr T abs(T a) noexcept
 {
     return a < 0 ? -a : a;
 }
 
-template<typename T> inline T sign(T a)
+template<typename T> constexpr T sign(T a) noexcept
 {
     return a < 0 ? -1 : 1;
 }
 
-template<typename T> void swap(T &a, T &b)
+template<typename T> constexpr void swap(T &a, T &b) noexcept
 {
-    T temp = a;
+    T tmp = a;
     a = b;
-    b = temp;
+    b = tmp;
 }
 
 template<typename Iterator, typename Compare> Iterator partition(Iterator beg, Iterator end, Compare cmp)

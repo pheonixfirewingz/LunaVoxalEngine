@@ -18,7 +18,7 @@ ThrowAwayString::~ThrowAwayString()
     ptr = nullptr;
 }
 
-String::String(const short *str, long len_in)
+String::String(const_type str, long len_in)
 {
     if (len_in == -1)
     {
@@ -32,7 +32,7 @@ String::String(const short *str, long len_in)
         len = len_in;
     }
     ensure_capacity(len);
-    memcpy(ptr, str, len * sizeof(short));
+    memcpy(ptr, str, len * sizeof(String::data_type));
 }
 
 String::String(const char *str, long len_in)
@@ -47,8 +47,8 @@ String::String(const String &other)
 {
     if (len > 0)
     {
-        ptr = new short[_str_capacity];
-        memcpy(ptr, other.ptr, len * sizeof(short));
+        ptr = new String::data_type[_str_capacity];
+        memcpy(ptr, other.ptr, len * sizeof(String::data_type));
     }
 }
 
@@ -74,8 +74,8 @@ String &String::operator=(const String &other)
         delete[] ptr;
         len = other.len;
         _str_capacity = other._str_capacity;
-        ptr = new short[_str_capacity];
-        memcpy(ptr, other.ptr, len * sizeof(short));
+        ptr = new String::data_type[_str_capacity];
+        memcpy(ptr, other.ptr, len * sizeof(String::data_type));
     }
     return *this;
 }
@@ -95,40 +95,90 @@ String &String::operator=(String &&other)
     return *this;
 }
 
-String &String::operator=(const short *str)
+String &String::operator=(const_type str)
 {
-    len = strlen((const char*)str);
+    len = strlen((const char *)str);
     ensure_capacity(len);
-    memcpy(ptr, str, len * sizeof(short));
+    memcpy(ptr, str, len * sizeof(String::data_type));
     return *this;
 }
 
-String String::operator+(const char *str)
+String String::operator+(const char *str) const noexcept
 {
     String result = *this;
     result.append(str);
     return result;
 }
 
-String String::operator+(const short *str)
+String String::operator+(const_type str) const
 {
     String result = *this;
     result.append(str);
     return result;
 }
 
-String String::operator+(const String &str)
+String String::operator+(const String &str) const
 {
     String result = *this;
     result.append(str);
     return result;
 }
 
-unsigned long String::size() const
+String::iterator String::begin() noexcept
+{
+    return ptr;
+}
+String::const_iterator String::begin() const noexcept
+{
+    return ptr;
+}
+String::const_iterator String::cbegin() const noexcept
+{
+    return ptr;
+}
+String::iterator String::end() noexcept
+{
+    return ptr + len;
+}
+String::const_iterator String::end() const noexcept
+{
+    return ptr + len;
+}
+String::const_iterator String::cend() const noexcept
+{
+    return ptr + len;
+}
+
+String::reverse_iterator String::rbegin() noexcept
+{
+    return reverse_iterator(end());
+}
+String::const_reverse_iterator String::rbegin() const noexcept
+{
+    return const_reverse_iterator(end());
+}
+String::const_reverse_iterator String::crbegin() const noexcept
+{
+    return const_reverse_iterator(end());
+}
+String::reverse_iterator String::rend() noexcept
+{
+    return reverse_iterator(begin());
+}
+String::const_reverse_iterator String::rend() const noexcept
+{
+    return const_reverse_iterator(begin());
+}
+String::const_reverse_iterator String::crend() const noexcept
+{
+    return const_reverse_iterator(begin());
+}
+
+String::size_type String::size() const
 {
     return len;
 }
-unsigned long String::length() const
+String::size_type String::length() const
 {
     return len;
 }
@@ -137,17 +187,22 @@ bool String::empty() const
     return len == 0;
 }
 
-unsigned long String::capacity() const
+String::size_type String::capacity() const
 {
     return _str_capacity;
 }
 
-void String::reserve(unsigned long new__str_capacity)
+void String::reserve(String::size_type new__str_capacity)
 {
     ensure_capacity(new__str_capacity);
 }
 
-short String::at(unsigned long index) const
+constexpr String::size_type String::max_size() const noexcept
+{
+    return static_cast<size_type>(-1) / sizeof(data_type);
+}
+
+String::data_type String::at(String::size_type index) const
 {
     if (index >= len)
     {
@@ -156,7 +211,7 @@ short String::at(unsigned long index) const
     return ptr[index];
 }
 
-short &String::at(unsigned long index)
+String::data_type &String::at(String::size_type index)
 {
     if (index >= len)
     {
@@ -165,46 +220,46 @@ short &String::at(unsigned long index)
     return ptr[index];
 }
 
-short String::operator[](unsigned long index) const
+String::data_type String::operator[](String::size_type index) const
 {
     return at(index);
 }
 
-short &String::operator[](unsigned long index)
+String::data_type &String::operator[](String::size_type index)
 {
     return at(index);
 }
 
-short *String::data()
+String::data_type *String::data()
 {
     return ptr;
 }
 
-const short *String::data() const
+String::const_type String::data() const
 {
     return ptr;
 }
 
-short String::front() const
+String::data_type String::front() const
 {
     return ptr[0];
 }
 
-short String::back() const
+String::data_type String::back() const
 {
     return ptr[len - 1];
 }
 
-short *String::raw_data()
+String::data_type *String::raw_data()
 {
     return ptr;
 }
-const short *String::raw_data() const
+String::const_type String::raw_data() const
 {
     return ptr;
 }
 
-void String::push_back(short ch)
+void String::push_back(String::data_type ch)
 {
     ensure_capacity(len + 1);
     ptr[len++] = ch;
@@ -221,13 +276,13 @@ void String::pop_back()
 void String::shrink_to_fit()
 {
     _str_capacity = len;
-    short *new_ptr = new short[_str_capacity];
-    memcpy(new_ptr, ptr, len * sizeof(short));
+    String::data_type *new_ptr = new String::data_type[_str_capacity];
+    memcpy(new_ptr, ptr, len * sizeof(String::data_type));
     delete[] ptr;
     ptr = new_ptr;
 }
 
-void String::resize(unsigned long new_size)
+void String::resize(String::size_type new_size)
 {
     ensure_capacity(new_size);
     len = new_size;
@@ -248,7 +303,7 @@ String &String::operator+=(const char *str)
 String &String::append(const String &other)
 {
     ensure_capacity(len + other.len);
-    memcpy(ptr + len, other.ptr, other.len * sizeof(short));
+    memcpy(ptr + len, other.ptr, other.len * sizeof(String::data_type));
     len += other.len;
     return *this;
 }
@@ -258,39 +313,245 @@ String &String::operator+=(const String &other)
     return append(other);
 }
 
-String &String::append(short ch)
+String &String::append(String::data_type ch)
 {
     ensure_capacity(len + 1);
     ptr[len++] = ch;
     return *this;
 }
 
-String &String::operator+=(short ch)
+String &String::operator+=(String::data_type ch)
 {
     return append(ch);
 }
 
-String String::substr(unsigned long start, unsigned long end) const
+String String::substr(String::size_type start, String::size_type end) const
 {
     String substr;
     substr.reserve(end - start);
-    for (unsigned long i = start; i < end; ++i)
+    for (String::size_type i = start; i < end; ++i)
     {
         substr.push_back(ptr[i]);
     }
     return substr;
 }
 
-bool String::operator==(const String &other) const
+constexpr String &String::insert(size_type pos, const String &str)
+{
+    if (pos > len)
+    {
+        Log::fatal("Index out of range");
+    }
+    size_type new_len = len + str.len;
+    ensure_capacity(new_len);
+
+    // Move existing characters
+    for (size_type i = len; i > pos; --i)
+    {
+        ptr[i + str.len - 1] = ptr[i - 1];
+    }
+
+    // Copy new string
+    for (size_type i = 0; i < str.len; ++i)
+    {
+        ptr[pos + i] = str.ptr[i];
+    }
+
+    len = new_len;
+    return *this;
+}
+
+constexpr String &String::insert(size_type pos, const_type s, size_type n)
+{
+    if (pos > len)
+    {
+        Log::fatal("Index out of range");
+    }
+    ensure_capacity(len + n);
+
+    // Move existing characters
+    for (size_type i = len; i > pos; --i)
+    {
+        ptr[i + n - 1] = ptr[i - 1];
+    }
+
+    // Copy new characters
+    for (size_type i = 0; i < n; ++i)
+    {
+        ptr[pos + i] = s[i];
+    }
+
+    len += n;
+    return *this;
+}
+
+constexpr String &String::insert(size_type pos, size_type n, String::data_type c)
+{
+    if (pos > len)
+    {
+        Log::fatal("Index out of range");
+    }
+    ensure_capacity(len + n);
+
+    // Move existing characters
+    for (size_type i = len; i > pos; --i)
+    {
+        ptr[i + n - 1] = ptr[i - 1];
+    }
+
+    // Fill with character
+    for (size_type i = 0; i < n; ++i)
+    {
+        ptr[pos + i] = c;
+    }
+
+    len += n;
+    return *this;
+}
+
+constexpr String &String::erase(size_type pos, size_type n)
+{
+    if (pos > len)
+    {
+        Log::fatal("Index out of range");
+    }
+
+    if (n == npos || pos + n > len)
+    {
+        n = len - pos;
+    }
+
+    for (size_type i = pos; i + n < len; ++i)
+    {
+        ptr[i] = ptr[i + n];
+    }
+
+    len -= n;
+    return *this;
+}
+
+constexpr String::size_type String::find(const String &str, size_type pos) const noexcept
+{
+    if (pos >= len)
+        return npos;
+    if (str.empty())
+        return pos;
+
+    for (size_type i = pos; i <= len - str.len; ++i)
+    {
+        bool found = true;
+        for (size_type j = 0; j < str.len; ++j)
+        {
+            if (ptr[i + j] != str.ptr[j])
+            {
+                found = false;
+                break;
+            }
+        }
+        if (found)
+            return i;
+    }
+    return npos;
+}
+
+constexpr String::size_type String::rfind(const String &str, size_type pos) const noexcept
+{
+    if (str.empty())
+        return min(pos, len);
+    if (len < str.len)
+        return npos;
+
+    pos = min(pos, len - str.len);
+
+    for (size_type i = pos + 1; i-- > 0;)
+    {
+        bool found = true;
+        for (size_type j = 0; j < str.len; ++j)
+        {
+            if (ptr[i + j] != str.ptr[j])
+            {
+                found = false;
+                break;
+            }
+        }
+        if (found)
+            return i;
+    }
+    return npos;
+}
+
+constexpr String::size_type String::find_first_of(const String &str, size_type pos) const noexcept
+{
+    for (size_type i = pos; i < len; ++i)
+    {
+        for (size_type j = 0; j < str.len; ++j)
+        {
+            if (ptr[i] == str.ptr[j])
+            {
+                return i;
+            }
+        }
+    }
+    return npos;
+}
+
+constexpr String::size_type String::find_last_of(const String &str, size_type pos) const noexcept
+{
+    if (empty())
+        return npos;
+    pos = min(pos, len - 1);
+
+    for (size_type i = pos + 1; i-- > 0;)
+    {
+        for (size_type j = 0; j < str.len; ++j)
+        {
+            if (ptr[i] == str.ptr[j])
+            {
+                return i;
+            }
+        }
+    }
+    return npos;
+}
+
+constexpr bool String::operator<(const String &rhs) const noexcept
+{
+    size_type min_len = min(len, rhs.len);
+    for (size_type i = 0; i < min_len; ++i)
+    {
+        if (ptr[i] < rhs.ptr[i])
+            return true;
+        if (ptr[i] > rhs.ptr[i])
+            return false;
+    }
+    return len < rhs.len;
+}
+
+constexpr bool String::operator<=(const String &rhs) const noexcept
+{
+    return !(rhs < *this);
+}
+
+constexpr bool String::operator>(const String &rhs) const noexcept
+{
+    return rhs < *this;
+}
+
+constexpr bool String::operator>=(const String &rhs) const noexcept
+{
+    return !(*this < rhs);
+}
+
+constexpr bool String::operator==(const String &other) const
 {
     if (len != other.len)
     {
         return false;
     }
-    return memcmp(ptr, other.ptr, len * sizeof(short)) == 0;
+    return memcmp(ptr, other.ptr, len * sizeof(String::data_type)) == 0;
 }
 
-bool String::operator!=(const String &other) const
+constexpr bool String::operator!=(const String &other) const
 {
     return !(*this == other);
 }
@@ -302,12 +563,12 @@ const ThrowAwayString String::throw_away() const
     char *utf8_result = new char[len + 1];
     memset(utf8_result, '\0', len + 1);
 
-    unsigned long i = 0;
+    String::size_type i = 0;
     long j = 0;
 
     while (i < len)
     {
-        unsigned short code_unit = ptr[i++];
+        String::udata_type code_unit = ptr[i++];
 
         if (code_unit < 0x80)
         {
@@ -323,8 +584,8 @@ const ThrowAwayString String::throw_away() const
         else if (code_unit >= 0xD800 && code_unit <= 0xDBFF)
         {
             // Surrogate pair: high surrogate
-            unsigned short high_surrogate = code_unit;
-            unsigned short low_surrogate = ptr[i];
+            String::udata_type high_surrogate = code_unit;
+            String::udata_type low_surrogate = ptr[i];
 
             if (low_surrogate >= 0xDC00 && low_surrogate <= 0xDFFF)
             {
@@ -368,7 +629,7 @@ bool String::start_with(const String &other) const
     {
         return false;
     }
-    return memcmp(ptr, other.ptr, other.len * sizeof(short)) == 0;
+    return memcmp(ptr, other.ptr, other.len * sizeof(String::data_type)) == 0;
 }
 
 bool String::end_with(const String &other) const
@@ -377,7 +638,7 @@ bool String::end_with(const String &other) const
     {
         return false;
     }
-    return memcmp(ptr + len - other.len, other.ptr, other.len * sizeof(short)) == 0;
+    return memcmp(ptr + len - other.len, other.ptr, other.len * sizeof(String::data_type)) == 0;
 }
 
 void String::clear()
@@ -386,6 +647,22 @@ void String::clear()
     ptr = nullptr;
     len = 0;
     _str_capacity = 0;
+}
+
+constexpr void String::resize(size_type n, String::data_type ch)
+{
+    if (n > len)
+    {
+        reserve(n);
+        while (len < n)
+        {
+            push_back(ch);
+        }
+    }
+    else
+    {
+        resize(n);
+    }
 }
 
 long String::get_utf16_length(const char *str, String::Encoding encoding)
@@ -456,7 +733,7 @@ long String::get_utf16_length(const char *str, String::Encoding encoding)
 
     case String::Encoding::UTF16_LE:
     case String::Encoding::UTF16_BE: {
-        const unsigned short *ptr = reinterpret_cast<const unsigned short *>(str);
+        const String::udata_type *ptr = reinterpret_cast<const String::udata_type *>(str);
         while (*ptr)
         {
             if (*ptr >= 0xD800 && *ptr <= 0xDBFF)
@@ -528,8 +805,8 @@ String::Encoding String::detect_encoding(const char *str, long len_in)
 
 String::Encoding String::detect_utf8_heuristic(const char *str, long len_in)
 {
-    unsigned long utf8_sequence_count = 0;
-    unsigned long expected_continuation_bytes = 0;
+    String::size_type utf8_sequence_count = 0;
+    String::size_type expected_continuation_bytes = 0;
 
     for (long i = 0; i < len_in; ++i)
     {
@@ -577,7 +854,7 @@ void String::convert_to_utf16(const char *str, long len_in, String::Encoding enc
     case String::Encoding::ASCII:
         for (long i = 0; i < len_in; ++i)
         {
-            ptr[len++] = static_cast<short>(str[i]);
+            ptr[len++] = static_cast<String::data_type>(str[i]);
         }
         break;
 
@@ -605,7 +882,7 @@ void String::convert_to_utf16(const char *str, long len_in, String::Encoding enc
 
 void String::convert_utf8_to_utf16(const char *str, long len_in)
 {
-    unsigned long utf16_index = 0;
+    String::size_type utf16_index = 0;
     for (long i = 0; i < len_in;)
     {
         unsigned char first_byte = static_cast<unsigned char>(str[i]);
@@ -627,7 +904,7 @@ void String::convert_utf8_to_utf16(const char *str, long len_in)
 
             unsigned int code_point = ((first_byte & 0x1F) << 6) | (second_byte & 0x3F);
             ensure_capacity(utf16_index + 1);
-            ptr[utf16_index++] = static_cast<short>(code_point);
+            ptr[utf16_index++] = static_cast<String::data_type>(code_point);
             i += 2;
         }
 
@@ -644,7 +921,7 @@ void String::convert_utf8_to_utf16(const char *str, long len_in)
 
             unsigned int code_point = ((first_byte & 0x0F) << 12) | ((second_byte & 0x3F) << 6) | (third_byte & 0x3F);
             ensure_capacity(utf16_index + 1);
-            ptr[utf16_index++] = static_cast<short>(code_point);
+            ptr[utf16_index++] = static_cast<String::data_type>(code_point);
             i += 3;
         }
 
@@ -686,24 +963,25 @@ void String::convert_utf16le_to_utf16(const char *str, long len_in)
 
     for (long i = 0; i < len_in; i += 2)
     {
-        unsigned short code_unit = (static_cast<unsigned char>(str[i + 1]) << 8) | static_cast<unsigned char>(str[i]);
+        String::udata_type code_unit =
+            (static_cast<unsigned char>(str[i + 1]) << 8) | static_cast<unsigned char>(str[i]);
 
         ensure_capacity(len + 1);
-        ptr[len++] = static_cast<short>(code_unit);
+        ptr[len++] = static_cast<String::data_type>(code_unit);
 
         if (code_unit >= 0xD800 && code_unit <= 0xDBFF)
         {
             if (i + 2 >= len_in)
                 Log::fatal("Incomplete surrogate pair");
 
-            unsigned short low_surrogate =
+            String::udata_type low_surrogate =
                 (static_cast<unsigned char>(str[i + 3]) << 8) | static_cast<unsigned char>(str[i + 2]);
 
             if (low_surrogate < 0xDC00 || low_surrogate > 0xDFFF)
                 Log::fatal("Invalid low surrogate");
 
             ensure_capacity(len + 1);
-            ptr[len++] = static_cast<short>(low_surrogate);
+            ptr[len++] = static_cast<String::data_type>(low_surrogate);
             i += 2;
         }
     }
@@ -716,24 +994,25 @@ void String::convert_utf16be_to_utf16(const char *str, long len_in)
 
     for (long i = 0; i < len_in; i += 2)
     {
-        unsigned short code_unit = (static_cast<unsigned char>(str[i]) << 8) | static_cast<unsigned char>(str[i + 1]);
+        String::udata_type code_unit =
+            (static_cast<unsigned char>(str[i]) << 8) | static_cast<unsigned char>(str[i + 1]);
 
         ensure_capacity(len + 1);
-        ptr[len++] = static_cast<short>(code_unit);
+        ptr[len++] = static_cast<String::data_type>(code_unit);
 
         if (code_unit >= 0xD800 && code_unit <= 0xDBFF)
         {
             if (i + 2 >= len_in)
                 Log::fatal("Incomplete surrogate pair");
 
-            unsigned short low_surrogate =
+            String::udata_type low_surrogate =
                 (static_cast<unsigned char>(str[i + 2]) << 8) | static_cast<unsigned char>(str[i + 3]);
 
             if (low_surrogate < 0xDC00 || low_surrogate > 0xDFFF)
                 Log::fatal("Invalid low surrogate");
 
             ensure_capacity(len + 1);
-            ptr[len++] = static_cast<short>(low_surrogate);
+            ptr[len++] = static_cast<String::data_type>(low_surrogate);
             i += 2;
         }
     }
@@ -753,7 +1032,7 @@ void String::convert_utf32le_to_utf16(const char *str, long len_in)
         if (code_point <= 0xFFFF)
         {
             ensure_capacity(len + 1);
-            ptr[len++] = static_cast<short>(code_point);
+            ptr[len++] = static_cast<String::data_type>(code_point);
         }
         else if (code_point <= 0x10FFFF)
         {
@@ -783,7 +1062,7 @@ void String::convert_utf32be_to_utf16(const char *str, long len_in)
         if (code_point <= 0xFFFF)
         {
             ensure_capacity(len + 1);
-            ptr[len++] = static_cast<short>(code_point);
+            ptr[len++] = static_cast<String::data_type>(code_point);
         }
         else if (code_point <= 0x10FFFF)
         {
@@ -799,19 +1078,19 @@ void String::convert_utf32be_to_utf16(const char *str, long len_in)
     }
 }
 
-void String::ensure_capacity(unsigned long new__str_capacity)
+void String::ensure_capacity(String::size_type new__str_capacity)
 {
     if (new__str_capacity > _str_capacity)
     {
-        unsigned long new_cap = (_str_capacity == 0) ? 8 : _str_capacity * 2;
+        String::size_type new_cap = (_str_capacity == 0) ? 8 : _str_capacity * 2;
         if (new_cap < new__str_capacity)
         {
             new_cap = new__str_capacity;
         }
-        short *new_ptr = new short[new_cap];
+        String::data_type *new_ptr = new String::data_type[new_cap];
         if (ptr != nullptr && len > 0)
         {
-            memcpy(new_ptr, ptr, len * sizeof(short));
+            memcpy(new_ptr, ptr, len * sizeof(String::data_type));
         }
         delete[] ptr;
         ptr = new_ptr;

@@ -1,50 +1,64 @@
 #ifndef VECTOR_H
 #define VECTOR_H
-#include <utils/new.h>
-#include <utils/algoritom.h>
 #include <platform/log.h>
+#include <utils/algoritom.h>
+#include <utils/riterator.h>
+#include <utils/new.h>
 namespace LunaVoxalEngine::Utils
 {
 template<typename T> class Vector final
 {
-public:
+  public:
     // Type aliases
     using value_type = T;
     using size_type = unsigned long;
-    using reference = T&;
-    using const_reference = const T&;
-    using iterator = T*;
-    using const_iterator = const T*;
+    using reference = T &;
+    using const_reference = const T &;
+    using iterator = T *;
+    using const_iterator = const T *;
+    using reverse_iterator = ReverseIterator<iterator>;
+    using const_reverse_iterator = ReverseIterator<const_iterator>;
 
     // Constructors and destructor
-    Vector() = default;
+    constexpr Vector() = default;
 
-    explicit Vector(size_type count, const T& value = T())
+    constexpr explicit Vector(size_type count, const T &value = T()) noexcept
+        : _size{count}, _capacity{count}
     {
-        ensure_capacity(count);
-        for (size_type i = 0; i < count; i++)
+        if (_size > 0)
         {
-            _data[i] = value;
+            _data = new T[_size];
+            for (size_type i = 0; i < _size; i++)
+            {
+                _data[i] = value;
+            }
         }
-        _size = count;
+        else
+        {
+            _data = nullptr;
+        }
     }
 
-    Vector(const Vector& other)
+    constexpr Vector(const Vector &other) noexcept
+        : _size{other._size}, _capacity{other._capacity}
     {
-        ensure_capacity(other._size);
-        for (size_type i = 0; i < other._size; i++)
+        if (_size > 0)
         {
-            _data[i] = other._data[i];
+            _data = new T[_size];
+            for (size_type i = 0; i < _size; i++)
+            {
+                _data[i] = other._data[i];
+            }
         }
-        _size = other._size;
-        _capacity = other._capacity;
+        else
+        {
+            _data = nullptr;
+        }
     }
 
-    Vector(Vector&& other) noexcept
+    constexpr Vector(Vector &&other) noexcept
+        : _size{other._size}, _capacity{other._capacity}, _data{other._data}
     {
-        _data = other._data;
-        _size = other._size;
-        _capacity = other._capacity;
         other._data = nullptr;
         other._size = 0;
         other._capacity = 0;
@@ -52,13 +66,14 @@ public:
 
     ~Vector()
     {
-        if (_data != nullptr) {
+        if (_data != nullptr)
+        {
             delete[] _data;
         }
     }
 
     // Assignment operators
-    Vector& operator=(const Vector& other)
+    constexpr Vector &operator=(const Vector &other) noexcept
     {
         if (this != &other)
         {
@@ -67,7 +82,7 @@ public:
         }
         return *this;
     }
-    Vector& operator=(Vector&& other) noexcept
+    constexpr Vector &operator=(Vector &&other) noexcept
     {
         if (this != &other)
         {
@@ -77,35 +92,35 @@ public:
     }
 
     // Capacity
-    size_type size() const noexcept
+    constexpr size_type size() const noexcept
     {
         return _size;
     }
-    size_type capacity() const noexcept
+    constexpr size_type capacity() const noexcept
     {
         return _capacity;
     }
-    bool empty() const noexcept
+    constexpr bool empty() const noexcept
     {
         return _size == 0;
     }
-    void reserve(size_type new_cap)
+    void reserve(size_type new_cap) noexcept
     {
         ensure_capacity(new_cap);
     }
-    void shrink_to_fit()
+    void shrink_to_fit() noexcept
     {
         ensure_capacity(_size);
         _capacity = _size;
     }
 
     // Element access
-    reference operator[](size_type pos)
+    reference operator[](size_type pos) noexcept
     {
         return at(pos);
     }
 
-    const_reference operator[](size_type pos) const
+    const_reference operator[](size_type pos) const noexcept
     {
         return at(pos);
     }
@@ -114,7 +129,7 @@ public:
     {
         if (pos >= _size)
         {
-             Log::fatal("Index out of range");
+            Log::fatal("Index out of range");
         }
         return _data[pos];
     }
@@ -123,37 +138,87 @@ public:
     {
         if (pos >= _size)
         {
-             Log::fatal("Index out of range");
+            Log::fatal("Index out of range");
         }
         return _data[pos];
     }
 
-    reference front()
-    {
-        return at(0);
-    }
-
-    const_reference front() const
-    {
-        return at(0);
-    }
-
-    reference back()
-    {
-        return at(_size - 1);
-    }
-
-    const_reference back() const
-    {
-        return at(_size - 1);
-    }
-
-    T* data() noexcept
+    iterator begin() noexcept
     {
         return _data;
     }
 
-    const T* data() const noexcept
+    const_iterator begin() const noexcept
+    {
+        return _data;
+    }
+
+    const_iterator cbegin() const noexcept
+    {
+        return _data;
+    }
+
+    iterator end() noexcept
+    {
+        return _data + _size;
+    }
+
+    const_iterator end() const noexcept
+    {
+        return _data + _size;
+    }
+
+    const_iterator cend() const noexcept
+    {
+        return _data + _size;
+    }
+
+    reverse_iterator rbegin() noexcept
+    {
+        return reverse_iterator(end());
+    }
+
+    const_reverse_iterator rbegin() const noexcept
+    {
+        return const_reverse_iterator(end());
+    }
+
+    reverse_iterator rend() noexcept
+    {
+        return reverse_iterator(begin());
+    }
+
+    const_reverse_iterator rend() const noexcept
+    {
+        return const_reverse_iterator(begin());
+    }
+
+    reference front() noexcept
+    {
+        return at(0);
+    }
+
+    const_reference front() const noexcept
+    {
+        return at(0);
+    }
+
+    reference back() noexcept
+    {
+        return at(_size - 1);
+    }
+
+    const_reference back() const noexcept
+    {
+        return at(_size - 1);
+    }
+
+    T *data() noexcept
+    {
+        return _data;
+    }
+
+    const T *data() const noexcept
     {
         return _data;
     }
@@ -163,29 +228,31 @@ public:
     {
         _size = 0;
         _capacity = 0;
-        if (_data != nullptr) {
+        if (_data != nullptr)
+        {
             delete[] _data;
         }
         _data = nullptr;
     }
 
-    void push_back(const T& value)
+    void push_back(const T &value)
     {
         ensure_capacity(_size + 1);
         _data[_size++] = value;
     }
 
-    template <typename... Args>
-    void emplace_back(Args&&... args) {
-        if (_size == _capacity) {
+    template<typename... Args> void emplace_back(Args &&...args)
+    {
+        if (_size == _capacity)
+        {
             reserve(_capacity == 0 ? 1 : _capacity * 2);
         }
         // Placement new for in-place construction
-        new (_data + _size) T(static_cast<Args&&>(args)...);
+        new (_data + _size) T(static_cast<Args &&>(args)...);
         ++_size;
     }
 
-    void push_back(T&& value)
+    void push_back(T &&value)
     {
         ensure_capacity(_size + 1);
         _data[_size++] = value;
@@ -195,11 +262,11 @@ public:
     {
         if (_size > 0)
         {
-            _size--;
+            --_size;
         }
     }
 
-    void resize(size_type count, const T& value = T())
+    void resize(size_type count, const T &value = T())
     {
         if (count > _size)
         {
@@ -217,7 +284,7 @@ public:
         }
     }
 
-    void swap(Vector& other) noexcept
+    void swap(Vector &other) noexcept
     {
         // Using your custom swap function
         swap(_data, other._data);
@@ -231,12 +298,12 @@ public:
         other._capacity = temp_capacity;
     }
 
-private:
-    T* _data = nullptr;
+  private:
+    T *_data = nullptr;
     unsigned long _size = 0;
     unsigned long _capacity = 0;
 
-    void ensure_capacity(unsigned long new_capacity)
+    void ensure_capacity(unsigned long new_capacity) noexcept
     {
         if (new_capacity > _capacity)
         {
@@ -246,7 +313,7 @@ private:
                 new_cap = new_capacity;
             }
 
-            T* new_ptr = new T[new_cap];
+            T *new_ptr = new T[new_cap];
             if (_data != nullptr && _size > 0)
             {
                 // Using your custom memcpy implementation
@@ -260,3 +327,4 @@ private:
 };
 } // namespace LunaVoxalEngine::Utils
 #endif
+
