@@ -1,8 +1,9 @@
-#include <renderer/vulkan/image.h>
-#include <platform/log.h>
 #include "image.h"
+#include <platform/log.h>
+#include <renderer/vulkan/image.h>
 
-namespace LunaVoxalEngine::Renderer
+
+namespace LunaVoxelEngine::Renderer
 {
 Image::Image()
 {
@@ -64,4 +65,4 @@ Image::~Image()
         vkDestroyImageView(volkGetLoadedDevice(), imageView_, nullptr);
     }
 }
-} // namespace LunaVoxalEngine::Renderer
+} // namespace LunaVoxelEngine::Renderer

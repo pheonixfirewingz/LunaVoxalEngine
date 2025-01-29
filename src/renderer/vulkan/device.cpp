@@ -2,8 +2,9 @@
 #include <renderer/vulkan/device.h>
 #include <utils/new.h>
 #include <utils/string.h>
+#include <cstddef>
 
-using namespace LunaVoxalEngine;
+using namespace LunaVoxelEngine;
 
 static Utils::String msgTypeToString(VkDebugUtilsMessageTypeFlagsEXT type) noexcept
 {
@@ -42,9 +43,9 @@ void *VKAPI_PTR customAllocation(void *pUserData, size_t size, size_t alignment,
                                  VkSystemAllocationScope allocationScope)
 {
     // Ensure alignment is at least the default alignment
-    if (alignment < alignof(std::max_align_t))
+    if (alignment < alignof(Utils::max_align_t))
     {
-        alignment = alignof(std::max_align_t);
+        alignment = alignof(Utils::max_align_t);
     }
 
     return ::operator new(size, std::align_val_t(alignment));
@@ -59,9 +60,11 @@ void *VKAPI_PTR customReallocation(void *pUserData, void *pOriginal, size_t size
                                    VkSystemAllocationScope allocationScope)
 {
     void *data = customAllocation(pUserData, size, alignment, allocationScope);
+    const size_t oldSize = LunaVoxelEngine::Platform::MemoryManager::get_instance().get_allocated_size(pOriginal);
     if (pOriginal && size > 0)
     {
-        Utils::memcpy(data, pOriginal, size);
+        size_t copy_size = Utils::min(size, oldSize);
+        Utils::memcpy(data, pOriginal, copy_size);
     }
     customFree(pUserData, pOriginal);
     return data;
@@ -189,8 +192,8 @@ static uint32_t find_queue_families(VkPhysicalDevice device) noexcept
 {
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
-    VkQueueFamilyProperties queue_families[queue_family_count];
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
+    Platform::ScopedHeap<VkQueueFamilyProperties> queue_families(queue_family_count);   
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, &queue_families);
     for (uint32_t i = 0; i < queue_family_count; ++i)
     {
         if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
@@ -201,9 +204,11 @@ static uint32_t find_queue_families(VkPhysicalDevice device) noexcept
     return UINT32_MAX;
 }
 
-namespace LunaVoxalEngine::Renderer
+namespace LunaVoxelEngine
 {
-Device::Device(const bool debug)
+namespace Renderer
+{ 
+    Device::Device(const bool debug)
 {
     VkInstance instance;
     {
@@ -213,9 +218,9 @@ Device::Device(const bool debug)
         }
         VkApplicationInfo app_info = {};
         app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        app_info.pApplicationName = "LunaVoxalEngine";
+        app_info.pApplicationName = "LunaVoxelEngine";
         app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        app_info.pEngineName = "LunaVoxalEngine";
+        app_info.pEngineName = "LunaVoxelEngine";
         app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         app_info.apiVersion = VK_API_VERSION_1_3;
         const char *extensions[3] = {VK_KHR_SURFACE_EXTENSION_NAME,
@@ -279,9 +284,9 @@ Device::Device(const bool debug)
     }
     uint32_t count = 0;
     vkEnumeratePhysicalDevices(instance, &count, nullptr);
-    VkPhysicalDevice devices[count];
-    vkEnumeratePhysicalDevices(instance, &count, devices);
-    auto pd = pick_physical_device(devices, count);
+    Platform::ScopedHeap<VkPhysicalDevice> devices(count);
+    vkEnumeratePhysicalDevices(instance, &count, &devices);
+    auto pd = pick_physical_device(&devices, count);
     if (pd == VK_NULL_HANDLE)
     {
         Log::fatal("Failed to find a suitable GPU");
@@ -338,4 +343,5 @@ Device::~Device()
     vkDestroyInstance(instance, &callbacks);
     volkFinalize();
 }
-} // namespace LunaVoxalEngine::Renderer
+} // namespace Renderer
+} // namespace LunaVoxelEngine

@@ -1,11 +1,12 @@
-#include <platform/thread.h>
-#include <utils/new.h>
 #include <errno.h>
+#include <platform/thread.h>
 #include <pthread.h>
 #include <sched.h>
 #include <time.h>
 #include <unistd.h>
-namespace LunaVoxalEngine::Platform
+#include <utils/new.h>
+
+namespace LunaVoxelEngine::Platform
 {
 struct thread_handle
 {
@@ -27,11 +28,13 @@ struct rwlock_handle
     pthread_rwlock_t rwlock;
 };
 
-struct barrier_handle {
+struct barrier_handle
+{
     pthread_barrier_t barrier;
 };
 
-struct spinlock_handle {
+struct spinlock_handle
+{
     pthread_spinlock_t spinlock;
 };
 
@@ -363,56 +366,69 @@ void condition_broadcast(condition_handle *handle)
 }
 
 // Barrier synchronization
-barrier_handle* barrier_create(unsigned int thread_count) {
-    barrier_handle* handle = new barrier_handle;
-    if (pthread_barrier_init(&handle->barrier, nullptr, thread_count) != 0) {
+barrier_handle *barrier_create(unsigned int thread_count)
+{
+    barrier_handle *handle = new barrier_handle;
+    if (pthread_barrier_init(&handle->barrier, nullptr, thread_count) != 0)
+    {
         delete handle;
         return nullptr;
     }
     return handle;
 }
 
-void barrier_destroy(barrier_handle* handle) {
-    if (handle) {
+void barrier_destroy(barrier_handle *handle)
+{
+    if (handle)
+    {
         pthread_barrier_destroy(&handle->barrier);
         delete handle;
     }
 }
 
-ThreadError barrier_wait(barrier_handle* handle) {
-    if (!handle) return THREAD_ERROR_WAIT;
+ThreadError barrier_wait(barrier_handle *handle)
+{
+    if (!handle)
+        return THREAD_ERROR_WAIT;
     int result = pthread_barrier_wait(&handle->barrier);
     return (result == 0 || result == PTHREAD_BARRIER_SERIAL_THREAD) ? THREAD_SUCCESS : THREAD_ERROR_WAIT;
 }
 
-
 // Spinlock operations
-spinlock_handle* spinlock_create() {
-    spinlock_handle* handle = new spinlock_handle;
-    if (pthread_spin_init(&handle->spinlock, PTHREAD_PROCESS_PRIVATE) != 0) {
+spinlock_handle *spinlock_create()
+{
+    spinlock_handle *handle = new spinlock_handle;
+    if (pthread_spin_init(&handle->spinlock, PTHREAD_PROCESS_PRIVATE) != 0)
+    {
         delete handle;
         return nullptr;
     }
     return handle;
 }
 
-void spinlock_destroy(spinlock_handle* handle) {
-    if (handle) {
+void spinlock_destroy(spinlock_handle *handle)
+{
+    if (handle)
+    {
         pthread_spin_destroy(&handle->spinlock);
         delete handle;
     }
 }
 
-void spinlock_lock(spinlock_handle* handle) {
-    if (handle) {
+void spinlock_lock(spinlock_handle *handle)
+{
+    if (handle)
+    {
         pthread_spin_lock(&handle->spinlock);
     }
 }
 
-void spinlock_unlock(spinlock_handle* handle) {
-    if (handle) {
+void spinlock_unlock(spinlock_handle *handle)
+{
+    if (handle)
+    {
         pthread_spin_unlock(&handle->spinlock);
     }
 }
 
-} // namespace LunaVoxalEngine::Platform
+} // namespace LunaVoxelEngine::Platform

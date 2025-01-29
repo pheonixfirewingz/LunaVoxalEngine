@@ -1,36 +1,33 @@
-#define WINAPI __stdcall
-
-extern "C" {
-    void* WINAPI GetCommandLine(void);
-    void* WINAPI CommandLineToArgvW(void* lpCmdLine, int* pNumArgs);
-    void* WINAPI LocalAlloc(int flags, size_t size);
-    void  WINAPI LocalFree(void* ptr);
-}
-
 #include <platform/log.h>
 #include <platform/main.h>
+#include <shellapi.h>
+#include <utils/string.h>
+#include <utils/vector.h>
+#include <windows.h>
 
-using namespace LunaVoxalEngine::Platform;
-using namespace LunaVoxalEngine::Log;
+using namespace LunaVoxelEngine::Platform;
+using namespace LunaVoxelEngine::Log;
+using namespace LunaVoxelEngine::Utils;
 
-int WINAPI WinMain(void* hInstance, void* hPrevInstance, char* lpCmdLine, int nCmdShow)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nCmdShow)
 {
+
     int argc = 0;
-    char** argv = nullptr;
-    void* commandLine = GetCommandLine();
-    argv = (char**)CommandLineToArgvW(commandLine, &argc);
-
-    std::vector<std::string> args;
+    LPWSTR *argvW = CommandLineToArgvW(GetCommandLineW(), &argc);
+    Vector<String> args;
     args.reserve(argc);
-
     for (int i = 0; i < argc; i++)
     {
-        args.emplace_back(argv[i]);
+        int size_needed = WideCharToMultiByte(CP_UTF8, 0, argvW[i], -1, NULL, 0, NULL, NULL);
+        char *arg = new char[size_needed];
+        WideCharToMultiByte(CP_UTF8, 0, argvW[i], -1, &arg[0], size_needed, NULL, NULL);
+        args.emplace_back(arg);
+        delete[] arg;
     }
+    LocalFree(argvW);
 
-    debug("Hello from LunaVoxalEngine");
-
-    LunaVoxalEngine::Platform::Runtime* runtime = LunaVoxalEngine::Platform::Runtime::Get();
+    debug("Hello from LunaVoxelEngine");
+    LunaVoxelEngine::Platform::Runtime *runtime = LunaVoxelEngine::Platform::Runtime::Get();
     debug("Runtime initializing...");
     if (runtime->Init(args))
     {

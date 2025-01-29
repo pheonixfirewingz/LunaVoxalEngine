@@ -1,9 +1,11 @@
 #ifndef STRING_H
 #define STRING_H
-#include <utils/algoritom.h>
+#include <utils/algorithm.h>
 #include <utils/new.h>
 #include <utils/riterator.h>
-namespace LunaVoxalEngine::Utils
+namespace LunaVoxelEngine
+{
+namespace Utils
 {
 
 inline long strlen(const char *str)
@@ -117,7 +119,7 @@ class String final
     const_reverse_iterator crend() const noexcept;
     size_type size() const noexcept;
     size_type length() const noexcept;
-    bool empty() const noexcept;
+    constexpr bool empty() const noexcept;
     size_type capacity() const noexcept;
     void reserve(size_type size);
     constexpr size_type max_size() const noexcept;
@@ -144,10 +146,10 @@ class String final
     String &append(data_type ch);
     String &operator+=(data_type ch);
     String substr(size_type start, size_type end) const;
-    constexpr String &insert(size_type pos, const String &str);
-    constexpr String &insert(size_type pos, const_type s, size_type n);
-    constexpr String &insert(size_type pos, size_type n, data_type c);
-    constexpr String &erase(size_type pos = 0, size_type n = npos);
+    String &insert(size_type pos, const String &str);
+    String &insert(size_type pos, const_type s, size_type n);
+    String &insert(size_type pos, size_type n, data_type c);
+    String &erase(size_type pos = 0, size_type n = npos);
     constexpr size_type find(const String &str, size_type pos = 0) const noexcept;
     constexpr size_type rfind(const String &str, size_type pos = npos) const noexcept;
     constexpr size_type find_first_of(const String &str, size_type pos = 0) const noexcept;
@@ -187,5 +189,6 @@ class String final
     void convert_utf32be_to_utf16(const char *str, long len_in);
     void ensure_capacity(size_type new__str_capacity);
 };
-} // namespace LunaVoxalEngine::Utils
+} // namespace Utils
+} // namespace LunaVoxelEngine
 #endif

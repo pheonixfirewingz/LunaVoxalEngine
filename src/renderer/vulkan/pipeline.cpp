@@ -1,6 +1,6 @@
 #include <renderer/vulkan/pipeline.h>
 extern VkAllocationCallbacks callbacks;
-namespace LunaVoxalEngine::Renderer
+namespace LunaVoxelEngine::Renderer
 {
 Pipeline::Pipeline(const GraphicsPipelineBuilder* builder)
     : type(PipelineType::GRAPHICS)
@@ -26,4 +26,4 @@ Pipeline::~Pipeline()
 {
     vkDestroyPipeline(volkGetLoadedDevice(), pipeline, nullptr);
 }
-} // namespace LunaVoxalEngine::Renderer
+} // namespace LunaVoxelEngine::Renderer

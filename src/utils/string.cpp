@@ -1,8 +1,8 @@
 #include <platform/log.h>
-#include <utils/algoritom.h>
+#include <utils/algorithm.h>
 #include <utils/string.h>
 
-namespace LunaVoxalEngine::Utils
+namespace LunaVoxelEngine::Utils
 {
 ThrowAwayString::ThrowAwayString(const char *str)
 {
@@ -18,7 +18,7 @@ ThrowAwayString::~ThrowAwayString()
     ptr = nullptr;
 }
 
-String::String(const_type str, long len_in)
+String::String(String::const_type str, long len_in)
 {
     if (len_in == -1)
     {
@@ -52,7 +52,7 @@ String::String(const String &other)
     }
 }
 
-String::String(String &&other)
+String::String(String &&other) noexcept
     : ptr(other.ptr)
     , len(other.len)
     , _str_capacity(other._str_capacity)
@@ -80,7 +80,7 @@ String &String::operator=(const String &other)
     return *this;
 }
 
-String &String::operator=(String &&other)
+String &String::operator=(String &&other) noexcept
 {
     if (this != &other)
     {
@@ -95,7 +95,7 @@ String &String::operator=(String &&other)
     return *this;
 }
 
-String &String::operator=(const_type str)
+String &String::operator=(String::const_type str)
 {
     len = strlen((const char *)str);
     ensure_capacity(len);
@@ -103,7 +103,7 @@ String &String::operator=(const_type str)
     return *this;
 }
 
-String String::operator+(const char *str) const noexcept
+String String::operator+(const char *str) const
 {
     String result = *this;
     result.append(str);
@@ -174,20 +174,22 @@ String::const_reverse_iterator String::crend() const noexcept
     return const_reverse_iterator(begin());
 }
 
-String::size_type String::size() const
+String::size_type String::size() const noexcept
 {
     return len;
 }
-String::size_type String::length() const
+
+String::size_type String::length() const noexcept
 {
     return len;
 }
-bool String::empty() const
+
+constexpr bool String::empty() const noexcept
 {
     return len == 0;
 }
 
-String::size_type String::capacity() const
+String::size_type String::capacity() const noexcept
 {
     return _str_capacity;
 }
@@ -336,7 +338,7 @@ String String::substr(String::size_type start, String::size_type end) const
     return substr;
 }
 
-constexpr String &String::insert(size_type pos, const String &str)
+String &String::insert(size_type pos, const String &str)
 {
     if (pos > len)
     {
@@ -361,7 +363,7 @@ constexpr String &String::insert(size_type pos, const String &str)
     return *this;
 }
 
-constexpr String &String::insert(size_type pos, const_type s, size_type n)
+String &String::insert(size_type pos, const_type s, size_type n)
 {
     if (pos > len)
     {
@@ -385,7 +387,7 @@ constexpr String &String::insert(size_type pos, const_type s, size_type n)
     return *this;
 }
 
-constexpr String &String::insert(size_type pos, size_type n, String::data_type c)
+String &String::insert(size_type pos, size_type n, String::data_type c)
 {
     if (pos > len)
     {
@@ -409,7 +411,7 @@ constexpr String &String::insert(size_type pos, size_type n, String::data_type c
     return *this;
 }
 
-constexpr String &String::erase(size_type pos, size_type n)
+String &String::erase(size_type pos, size_type n)
 {
     if (pos > len)
     {
@@ -1097,4 +1099,4 @@ void String::ensure_capacity(String::size_type new__str_capacity)
         _str_capacity = new_cap;
     }
 }
-} // namespace LunaVoxalEngine::Utils
+} // namespace LunaVoxelEngine::Utils

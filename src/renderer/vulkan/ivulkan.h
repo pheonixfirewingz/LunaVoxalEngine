@@ -3,6 +3,7 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 #if defined(ON_WINDOWS) || defined(ON_XBOX)
+#include <windows.h>
 #include <vulkan/vulkan_win32.h>
 #endif
 #if defined(ON_ANDROID)

@@ -1,16 +1,17 @@
 #ifndef PLATFORM_WINDOW_H
 #define PLATFORM_WINDOW_H
 #include <utils/string.h>
-
-namespace LunaVoxalEngine::Platform
+namespace LunaVoxelEngine
+{
+namespace  Platform
 {
 
 struct NativeWindow
 {
-  void *window;
-  void* other;
+    void *window;
+    void *other;
 };
-  
+
 class Window final
 {
   public:
@@ -27,6 +28,7 @@ class Window final
   private:
     void *window;
     bool visible;
+    friend class ChildWindow;
 };
 
 class ChildWindow final
@@ -52,6 +54,6 @@ class ChildWindow final
 
     friend Window;
 };
-} // namespace LunaVoxalEngine::Platform::Window
-
+} // namespace  Platform
+} // namespace LunaVoxelEngine
 #endif

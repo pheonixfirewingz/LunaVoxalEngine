@@ -1,12 +1,15 @@
 #ifndef COMMON_LOG_H
 #define COMMON_LOG_H
-#include <cstddef>
-#include <stdarg.h>
-#define BUFFER_SIZE 1024
-namespace LunaVoxalEngine::Log
+#include <utils/cdef.h>
+#include <cstdarg>
+constexpr auto BUFFER_SIZE = 1024;
+namespace LunaVoxelEngine
 {
-    void write_str(const char* str, size_t len) noexcept;
-    void write_char(const char c) noexcept;
-    void print_generic(const char* format, va_list args);
-} // namespace LunaVoxalEngine::Log
+namespace Log 
+{
+void write_str(const char *str, size_t len) noexcept;
+void write_char(const char c) noexcept;
+void print_generic(const char *format, va_list args);
+} // namespace Log
+} // namespace LunaVoxelEngine
 #endif

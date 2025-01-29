@@ -1,10 +1,11 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 #include <platform/log.h>
-#include <utils/algoritom.h>
-#include <utils/riterator.h>
+#include <utils/algorithm.h>
 #include <utils/new.h>
-namespace LunaVoxalEngine::Utils
+#include <utils/riterator.h>
+
+namespace LunaVoxelEngine::Utils
 {
 template<typename T> class Vector final
 {
@@ -23,7 +24,8 @@ template<typename T> class Vector final
     constexpr Vector() = default;
 
     constexpr explicit Vector(size_type count, const T &value = T()) noexcept
-        : _size{count}, _capacity{count}
+        : _size{count}
+        , _capacity{count}
     {
         if (_size > 0)
         {
@@ -40,7 +42,8 @@ template<typename T> class Vector final
     }
 
     constexpr Vector(const Vector &other) noexcept
-        : _size{other._size}, _capacity{other._capacity}
+        : _size{other._size}
+        , _capacity{other._capacity}
     {
         if (_size > 0)
         {
@@ -57,7 +60,9 @@ template<typename T> class Vector final
     }
 
     constexpr Vector(Vector &&other) noexcept
-        : _size{other._size}, _capacity{other._capacity}, _data{other._data}
+        : _size{other._size}
+        , _capacity{other._capacity}
+        , _data{other._data}
     {
         other._data = nullptr;
         other._size = 0;
@@ -323,6 +328,5 @@ template<typename T> class Vector final
         }
     }
 };
-} // namespace LunaVoxalEngine::Utils
+} // namespace LunaVoxelEngine::Utils
 #endif
-

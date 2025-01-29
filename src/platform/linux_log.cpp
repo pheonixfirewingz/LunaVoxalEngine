@@ -1,24 +1,28 @@
-#include <platform/log.h>
 #include <platform/common_log.h>
-#include <utils/string.h>
-#include <utils/algoritom.h>
-#include <unistd.h>
+#include <platform/log.h>
 #include <sys/syscall.h>
+#include <unistd.h>
+#include <utils/algorithm.h>
+#include <utils/string.h>
 
-namespace LunaVoxalEngine::Log
+namespace LunaVoxelEngine::Log
 {
 static char buffer[BUFFER_SIZE];
 static size_t buffer_pos = 0;
 
-inline void flush() noexcept {
-    if (buffer_pos > 0) {
+inline void flush() noexcept
+{
+    if (buffer_pos > 0)
+    {
         syscall(SYS_write, 1, buffer, buffer_pos);
         buffer_pos = 0;
     }
 }
 
-void write_str(const char* str, size_t len) noexcept {
-    if (len + buffer_pos >= BUFFER_SIZE) {
+void write_str(const char *str, size_t len) noexcept
+{
+    if (len + buffer_pos >= BUFFER_SIZE)
+    {
         flush();
     }
     size_t remaining_space = BUFFER_SIZE - buffer_pos;
@@ -26,14 +30,17 @@ void write_str(const char* str, size_t len) noexcept {
 
     Utils::memcpy(buffer + buffer_pos, str, copy_len);
     buffer_pos += copy_len;
-    if (copy_len < len) {
+    if (copy_len < len)
+    {
         flush();
         write_str(str + copy_len, len - copy_len);
     }
 }
 
-void write_char(const char c) noexcept {
-    if (buffer_pos >= BUFFER_SIZE || c == '\n') {
+void write_char(const char c) noexcept
+{
+    if (buffer_pos >= BUFFER_SIZE || c == '\n')
+    {
         flush();
     }
     buffer[buffer_pos++] = c;
@@ -43,11 +50,11 @@ void fatal(const Utils::String &fmt, ...) noexcept
 {
     va_list args;
     va_start(args, fmt);
-    write_str("LUNAVOXAL - FATAL: ", 20);
+    write_str("LUNAVOXEL - FATAL: ", 20);
     auto str = fmt.throw_away();
     print_generic(str.c_str(), args);
     write_char('\n');
     va_end(args);
     syscall(SYS_exit, 1);
 }
-} // namespace LunaVoxalEngine::Log
+} // namespace LunaVoxelEngine::Log

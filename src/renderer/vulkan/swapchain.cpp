@@ -1,11 +1,10 @@
 #include <platform/log.h>
-
 #include <renderer/vulkan/swapchain.h>
-#include <utils/algoritom.h>
-
-using namespace LunaVoxalEngine::Utils;
-
+#include <utils/algorithm.h>
+#include <renderer/vulkan/ivulkan.h>
 extern VkAllocationCallbacks callbacks;
+
+using namespace LunaVoxelEngine::Utils;
 
 static inline const char *string_VkResult(VkResult input_value)
 {
@@ -114,7 +113,7 @@ static inline const char *string_VkResult(VkResult input_value)
     }
 }
 
-static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *device, VkSwapchainKHR *swap_chain,
+static VkResult create_swap_chain(const LunaVoxelEngine::Renderer::Device *device, VkSwapchainKHR *swap_chain,
                                   VkSurfaceKHR surface, VkSurfaceFormatKHR format, VkPresentModeKHR present_mode,
                                   VkExtent2D *extent) noexcept
 {
@@ -125,7 +124,7 @@ static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *devic
     uint32_t image_count = capabilities.minImageCount + 1;
     if (capabilities.maxImageCount > 0)
     {
-        image_count = LunaVoxalEngine::Utils::min(image_count, capabilities.maxImageCount);
+        image_count = LunaVoxelEngine::Utils::min(image_count, capabilities.maxImageCount);
     }
 
     // TODO: handle different family indices
@@ -166,7 +165,8 @@ static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *devic
     return vkCreateSwapchainKHR(volkGetLoadedDevice(), &create_info, &callbacks, swap_chain);
 }
 
-static void create_image_views(VkSwapchainKHR swap_chain, VkSurfaceFormatKHR format, Vector<VkImage> *images,
+static void create_image_views(VkSwapchainKHR swap_chain, VkSurfaceFormatKHR format,
+                               Vector<VkImage> *images,
                                Vector<VkImageView> *image_views) noexcept
 {
     uint32_t image_count = 0;
@@ -193,44 +193,22 @@ static void create_image_views(VkSwapchainKHR swap_chain, VkSurfaceFormatKHR for
         create_info.subresourceRange.layerCount = 1;
         if (vkCreateImageView(volkGetLoadedDevice(), &create_info, &callbacks, &image_views->at(i)) != VK_SUCCESS)
         {
-            LunaVoxalEngine::Log::fatal("Failed to create image views!");
+            LunaVoxelEngine::Log::fatal("Failed to create image views!");
         }
     }
 }
 
-namespace LunaVoxalEngine::Renderer
+namespace LunaVoxelEngine
 {
-
-VkResult SwapChain::acquireNextImage(VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex)
+namespace Renderer
 {
-    return vkAcquireNextImageKHR(volkGetLoadedDevice(), swap_chain, UINT64_MAX, semaphore, fence, imageIndex);
-}
-
-VkResult SwapChain::present(Queue* queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
-{
-    VkPresentInfoKHR present_info{};
-    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = &waitSemaphore;
-    present_info.swapchainCount = 1;
-    present_info.pSwapchains = &swap_chain;
-    present_info.pImageIndices = &imageIndex;
-    return queue->present(present_info);
-}
-
 SwapChain::SwapChain(const Device *device, Platform::NativeWindow native_window)
 {
 #if defined(ON_WINDOWS) || defined(ON_XBOX)
-    struct win32_native
-    {
-        HINSTANCE hinstance;
-        HWND hwnd;
-    } *native_window_ = static_cast<struct win32_native *>(native_window);
-
     VkWin32SurfaceCreateInfoKHR create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    create_info.hinstance = native_window_->hinstance;
-    create_info.hwnd = native_window_->hwnd;
+    create_info.hinstance = static_cast<HINSTANCE>(native_window.other);
+    create_info.hwnd = static_cast<HWND>(native_window.window);
 
     if (auto result = vkCreateWin32SurfaceKHR(volkGetLoadedInstance(), &create_info, &callbacks, &surface);
         result != VK_SUCCESS)
@@ -281,8 +259,8 @@ SwapChain::SwapChain(const Device *device, Platform::NativeWindow native_window)
 #endif
     uint32_t format_count = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device->get_physical_device(), surface, &format_count, nullptr);
-    VkSurfaceFormatKHR surface_formats[format_count];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device->get_physical_device(), surface, &format_count, surface_formats);
+    Platform::ScopedHeap<VkSurfaceFormatKHR> surface_formats(format_count);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device->get_physical_device(), surface, &format_count, &surface_formats);
     auto chose = [&]() {
         for (uint32_t i = 0; i < format_count; i++)
         {
@@ -298,9 +276,9 @@ SwapChain::SwapChain(const Device *device, Platform::NativeWindow native_window)
 
     uint32_t present_mode_count = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device->get_physical_device(), surface, &present_mode_count, nullptr);
-    VkPresentModeKHR present_modes[present_mode_count];
+    Platform::ScopedHeap<VkPresentModeKHR> present_modes(present_mode_count);
     vkGetPhysicalDeviceSurfacePresentModesKHR(device->get_physical_device(), surface, &present_mode_count,
-                                              present_modes);
+                                              &present_modes);
     auto chose_present_mode = [&]() {
         for (uint32_t i = 0; i < present_mode_count; i++)
         {
@@ -321,6 +299,23 @@ SwapChain::SwapChain(const Device *device, Platform::NativeWindow native_window)
         Log::error("Failed to create swapchain %s", string_VkResult(result));
     }
     create_image_views(swap_chain, image_format, &images, &image_views);
+}
+
+VkResult SwapChain::acquireNextImage(VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex)
+{
+    return vkAcquireNextImageKHR(volkGetLoadedDevice(), swap_chain, UINT64_MAX, semaphore, fence, imageIndex);
+}
+
+VkResult SwapChain::present(Queue *queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+{
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = &waitSemaphore;
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = &swap_chain;
+    present_info.pImageIndices = &imageIndex;
+    return queue->present(present_info);
 }
 
 void SwapChain::resize(const Device *device)
@@ -350,5 +345,5 @@ SwapChain::~SwapChain()
     vkDestroySwapchainKHR(volkGetLoadedDevice(), swap_chain, &callbacks);
     vkDestroySurfaceKHR(volkGetLoadedInstance(), surface, &callbacks);
 }
-
-} // namespace LunaVoxalEngine::Renderer
+} // namespace Renderer
+} // namespace LunaVoxelEngine

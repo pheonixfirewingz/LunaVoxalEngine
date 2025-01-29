@@ -2,7 +2,7 @@
 #define VK_QUEUE_H
 #include <renderer/vulkan/ivulkan.h>
 
-namespace LunaVoxalEngine::Renderer
+namespace LunaVoxelEngine::Renderer
 {
     class [[nodiscard]] Queue final
     {

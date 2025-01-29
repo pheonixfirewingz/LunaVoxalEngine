@@ -1,15 +1,12 @@
 #ifndef COMMON_MAIN_H
 #define COMMON_MAIN_H
-#include <utils/string.h>
-#include <utils/vector.h>
-#include <platform/thread.h>
 #include <platform/window.h>
+#include <renderer/vulkan/cmd_buffer.h>
 #include <renderer/vulkan/device.h>
 #include <renderer/vulkan/swapchain.h>
-#include <renderer/vulkan/cmd_buffer.h>
 #include <renderer/vulkan/pipeline.h>
 #include <renderer/vulkan/queue.h>
-namespace LunaVoxalEngine::Platform
+namespace LunaVoxelEngine::Platform
 {
 class Runtime final
 {
@@ -40,5 +37,5 @@ class Runtime final
     Renderer::SwapChain *swap_chain;
     Renderer::CommandBuffer *command_buffer;
 };
-} // namespace LunaVoxalEngine::Platform
+} // namespace LunaVoxelEngine::Platform
 #endif

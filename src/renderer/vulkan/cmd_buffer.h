@@ -3,7 +3,7 @@
 #include <renderer/vulkan/buffer.h>
 #include <renderer/vulkan/pipeline.h>
 #include <renderer/vulkan/ivulkan.h>
-namespace LunaVoxalEngine::Renderer
+namespace LunaVoxelEngine::Renderer
 {
 
 class [[nodiscard]] CommandBuffer final
@@ -152,5 +152,5 @@ class [[nodiscard]] CommandBuffer final
     VkCommandPool command_pool;
     VkCommandBuffer command_buffer;
 };
-} // namespace LunaVoxalEngine::Renderer
+} // namespace LunaVoxelEngine::Renderer
 #endif

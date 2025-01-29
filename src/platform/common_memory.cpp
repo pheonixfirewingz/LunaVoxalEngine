@@ -2,9 +2,9 @@
 #include <cstdint>
 #include <platform/common_memory.h>
 #include <platform/log.h>
-#include <utils/algoritom.h>
+#include <utils/algorithm.h>
 
-namespace LunaVoxalEngine::Platform
+namespace LunaVoxelEngine::Platform
 {
 static MemoryManager instance;
 
@@ -231,6 +231,19 @@ void *MemoryManager::allocate(size_t size, size_t alignment)
     return aligned_addr;
 }
 
+size_t MemoryManager::get_allocated_size(void *ptr)
+{
+    // This function is called when someone wants to know the size of an allocated block.
+    // This memory is represented by a pointer 'ptr'.
+    if (!ptr)
+        return 0;
+    // We subtract 1 from the pointer to get to the address of the block that
+    // contains the information about the size of the block.
+    Block *block = ((Block *)ptr) - 1;
+    // We return the size of the block.
+    return block->size;
+}
+
 void MemoryManager::deallocate(void *ptr)
 {
     // This function is called when someone wants to deallocate some memory.
@@ -292,4 +305,4 @@ void MemoryManager::operator_delete_array(void *ptr) noexcept
     }
 }
 
-} // namespace LunaVoxalEngine::Platform
+} // namespace LunaVoxelEngine::Platform

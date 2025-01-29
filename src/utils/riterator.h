@@ -1,6 +1,8 @@
-#ifndef RITERATOR_H
-#define RITERATOR_H
-namespace LunaVoxalEngine::Utils
+#ifndef R_ITERATOR_H
+#define R_ITERATOR_H
+namespace LunaVoxelEngine
+{
+namespace Utils
 {
 template<typename Iterator> class [[nodiscard]] ReverseIterator final
 {
@@ -64,6 +66,6 @@ template<typename Iterator> class [[nodiscard]] ReverseIterator final
   private:
     Iterator current;
 };
-
-} // namespace LunaVoxalEngine::Utils
+} // namespace Utils
+} // namespace LunaVoxelEngine
 #endif

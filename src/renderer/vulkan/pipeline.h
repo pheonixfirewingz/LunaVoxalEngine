@@ -2,7 +2,7 @@
 #define PIPELINE_H
 #include <renderer/vulkan/ivulkan.h>
 #include <utils/vector.h>
-namespace LunaVoxalEngine::Renderer
+namespace LunaVoxelEngine::Renderer
 {
 enum class PipelineType
 {
@@ -183,5 +183,5 @@ class [[nodiscard]] Pipeline final
     VkPipeline pipeline;
     PipelineType type;
 };
-} // namespace LunaVoxalEngine::Renderer
+} // namespace LunaVoxelEngine::Renderer
 #endif

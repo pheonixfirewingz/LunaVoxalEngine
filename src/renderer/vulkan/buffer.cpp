@@ -1,7 +1,8 @@
-#include <renderer/vulkan/buffer.h>
 #include <platform/log.h>
+#include <renderer/vulkan/buffer.h>
 
-namespace LunaVoxalEngine::Renderer
+
+namespace LunaVoxelEngine::Renderer
 {
 
 Buffer::Buffer()
@@ -20,4 +21,4 @@ void Buffer::unmap()
 Buffer::~Buffer()
 {
 }
-} // namespace LunaVoxalEngine::Renderer
+} // namespace LunaVoxelEngine::Renderer

@@ -1,6 +1,6 @@
 #include <platform/log.h>
 #include <renderer/vulkan/cmd_buffer.h>
-namespace LunaVoxalEngine::Renderer
+namespace LunaVoxelEngine::Renderer
 {
 CommandBuffer::CommandBuffer(VkCommandPool commandPool, VkCommandBufferLevel level)
 {
@@ -48,12 +48,14 @@ void CommandBuffer::drawIndexedIndirect(Buffer buffer, VkDeviceSize offset, uint
 void CommandBuffer::drawIndirectCount(Buffer buffer, VkDeviceSize offset, Buffer countBuffer,
                                       VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
-    vkCmdDrawIndirectCount(command_buffer, buffer.buffer, offset, countBuffer.buffer, countBufferOffset, maxDrawCount, stride);
+    vkCmdDrawIndirectCount(command_buffer, buffer.buffer, offset, countBuffer.buffer, countBufferOffset, maxDrawCount,
+                           stride);
 }
 void CommandBuffer::drawIndexedIndirectCount(Buffer buffer, VkDeviceSize offset, Buffer countBuffer,
                                              VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
-    vkCmdDrawIndexedIndirectCount(command_buffer, buffer.buffer, offset, countBuffer.buffer, countBufferOffset, maxDrawCount, stride);
+    vkCmdDrawIndexedIndirectCount(command_buffer, buffer.buffer, offset, countBuffer.buffer, countBufferOffset,
+                                  maxDrawCount, stride);
 }
 void CommandBuffer::dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
@@ -279,8 +281,7 @@ void CommandBuffer::clearDepthStencilImage(VkImage image, VkImageLayout imageLay
 {
     vkCmdClearDepthStencilImage(command_buffer, image, imageLayout, pDepthStencil, rangeCount, pRanges);
 }
-void CommandBuffer::copyBuffer(Buffer srcBuffer, Buffer dstBuffer, uint32_t regionCount,
-                               const VkBufferCopy *pRegions)
+void CommandBuffer::copyBuffer(Buffer srcBuffer, Buffer dstBuffer, uint32_t regionCount, const VkBufferCopy *pRegions)
 {
     vkCmdCopyBuffer(command_buffer, srcBuffer.buffer, dstBuffer.buffer, regionCount, pRegions);
 }
@@ -327,4 +328,4 @@ void CommandBuffer::insertDebugUtilsLabelEXT(const VkDebugUtilsLabelEXT *pLabelI
 {
     vkCmdInsertDebugUtilsLabelEXT(command_buffer, pLabelInfo);
 }
-} // namespace LunaVoxalEngine::Renderer
+} // namespace LunaVoxelEngine::Renderer

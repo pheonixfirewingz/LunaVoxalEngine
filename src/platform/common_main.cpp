@@ -1,11 +1,11 @@
 #include <platform/main.h>
 #include <utils/new.h>
 
-namespace LunaVoxalEngine::Platform
+namespace LunaVoxelEngine::Platform
 {
 bool Runtime::Init(Utils::Vector<Utils::String> args) noexcept
 {
-    window = new Window(1280, 720, "LunaVoxalEngine");
+    window = new Window(1280, 720, "LunaVoxelEngine");
     window->show();
     device = new Renderer::Device(true);
     swap_chain = new Renderer::SwapChain(device, window->getVulkanLink());
@@ -164,4 +164,4 @@ void Runtime::Shutdown() noexcept
     delete device;
     delete window;
 }
-} // namespace LunaVoxalEngine::Platform
+} // namespace LunaVoxelEngine::Platform

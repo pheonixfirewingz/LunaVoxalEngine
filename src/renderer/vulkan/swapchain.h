@@ -6,11 +6,16 @@
 #include <platform/window.h>
 #include <utils/vector.h>
 
-namespace LunaVoxalEngine::Renderer
+namespace LunaVoxelEngine
+{
+namespace Renderer
 {
 class [[nodiscard]] SwapChain final
 {
-   public:
+  public:
+    /*@brief Constructor *@details Creates a new swap chain with the given device and native window
+     *@param[in] device The Vulkan device *@param[in] native_window The native window
+     */
     SwapChain(const Device *device, Platform::NativeWindow native_window);
     void resize(const Device *device);
     ~SwapChain();
@@ -82,5 +87,6 @@ class [[nodiscard]] SwapChain final
     VkExtent2D extent;
     VkPresentModeKHR present_mode;
 };
-} // namespace LunaVoxalEngine::Renderer
+} // namespace Renderer
+} // namespace LunaVoxelEngine
 #endif

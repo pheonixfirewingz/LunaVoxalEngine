@@ -1,7 +1,9 @@
-#ifndef ALGORITOM_H
-#define ALGORITOM_H
+#ifndef ALGORITHM_H
+#define ALGORITHM_H
 
-namespace LunaVoxalEngine::Utils
+namespace LunaVoxelEngine
+{
+namespace Utils
 {
 template<typename T> constexpr T clamp(T value, T min, T max) noexcept
 {
@@ -89,12 +91,15 @@ inline int memcmp(const void *aptr, const void *bptr, unsigned long size)
 
 inline void *memcpy(void *dstptr, const void *srcptr, unsigned long size)
 {
+    if (!dstptr || !srcptr)
+        return nullptr; // Check for null pointers
     unsigned char *dst = (unsigned char *)dstptr;
     const unsigned char *src = (const unsigned char *)srcptr;
     for (unsigned long i = 0; i < size; i++)
         dst[i] = src[i];
     return dstptr;
 }
+
 
 inline void *memset(void *bufptr, int value, unsigned long size)
 {
@@ -104,17 +109,22 @@ inline void *memset(void *bufptr, int value, unsigned long size)
     return bufptr;
 }
 
-inline void* memmove(void* dstptr, const void* srcptr, unsigned long size) {
-	unsigned char* dst = (unsigned char*) dstptr;
-	const unsigned char* src = (const unsigned char*) srcptr;
-	if (dst < src) {
-		for (unsigned long i = 0; i < size; i++)
-			dst[i] = src[i];
-	} else {
-		for (unsigned long i = size; i != 0; i--)
-			dst[i-1] = src[i-1];
-	}
-	return dstptr;
+inline void *memmove(void *dstptr, const void *srcptr, unsigned long size)
+{
+    unsigned char *dst = (unsigned char *)dstptr;
+    const unsigned char *src = (const unsigned char *)srcptr;
+    if (dst < src)
+    {
+        for (unsigned long i = 0; i < size; i++)
+            dst[i] = src[i];
+    }
+    else
+    {
+        for (unsigned long i = size; i != 0; i--)
+            dst[i - 1] = src[i - 1];
+    }
+    return dstptr;
 }
-} // namespace LunaVoxalEngine::Utils
+} // namespace Utils
+} // namespace LunaVoxelEngine
 #endif
