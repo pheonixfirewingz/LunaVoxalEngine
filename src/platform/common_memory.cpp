@@ -91,7 +91,7 @@ MemoryManager::Pool *MemoryManager::create_pool(size_t min_size)
     Pool *pool = reinterpret_cast<Pool *>(os_malloc(sizeof(Pool) + pool_size));
 
     // If the allocation failed, return nullptr to indicate an error.
-    if (!pool) 
+    if (!pool)
         return nullptr;
 
     // Initialize the pool's total size with the calculated pool size.
@@ -191,10 +191,6 @@ void *MemoryManager::allocate(size_t size, size_t alignment)
 
     // Calculate the size of the allocation, taking into account the alignment.
     size = align_size(size, alignment);
-
-    // Lock the mutex to ensure that only one thread can access the pool at any given time.
-    Platform::GuardLock lock(pool_mutex);
-
     // Search the pools for a free block that is large enough to satisfy the allocation.
     Block *block = find_block(size, alignment);
 
@@ -246,17 +242,11 @@ void MemoryManager::deallocate(void *ptr)
     // contains the information about the size of the block.
     Block *block = ((Block *)ptr) - 1;
 
-    {
-        // We lock the mutex to ensure that only one thread can access the pool
-        // at any given time.
-        Platform::GuardLock lock(pool_mutex);
+    // We mark the block as unused.
+    block->used = false;
 
-        // We mark the block as unused.
-        block->used = false;
-
-        // We subtract the size of the block from the total amount of used memory.
-        total_used -= block->size;
-    }
+    // We subtract the size of the block from the total amount of used memory.
+    total_used -= block->size;
 
     // We call coalesce to merge the deallocated block with any adjacent free
     // blocks.

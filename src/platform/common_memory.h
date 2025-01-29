@@ -26,7 +26,6 @@ private:
     Pool* pools;
     size_t total_allocated;
     size_t total_used;
-    Mutex pool_mutex;
     // Prevent copying
     MemoryManager(const MemoryManager&) = delete;
     MemoryManager& operator=(const MemoryManager&) = delete;
