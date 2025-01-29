@@ -1,11 +1,12 @@
 #ifndef VK_CMD_BUFFER_H
 #define VK_CMD_BUFFER_H
 #include <renderer/vulkan/buffer.h>
+#include <renderer/vulkan/pipeline.h>
 #include <renderer/vulkan/ivulkan.h>
 namespace LunaVoxalEngine::Renderer
 {
 
-class CommandBuffer final
+class [[nodiscard]] CommandBuffer final
 {
   public:
     CommandBuffer(VkCommandPool commandPool, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
@@ -32,7 +33,7 @@ class CommandBuffer final
     }
     ~CommandBuffer();
     // Core Command Buffer Operations
-    void begin(const VkCommandBufferBeginInfo *pBeginInfo);
+    void begin(const VkCommandBufferUsageFlags usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     void end();
     void reset(VkCommandBufferResetFlags flags);
     void executeCommands(uint32_t commandBufferCount, const VkCommandBuffer *pCommandBuffers);
@@ -68,9 +69,6 @@ class CommandBuffer final
     void setRenderingAttachmentLocations(const VkRenderingAttachmentLocationInfoKHR *pLocationInfo);
     void setRenderingInputAttachmentIndices(const VkRenderingInputAttachmentIndexInfoKHR *pIndexInfo);
 
-    // Dynamic Rendering Fragment Density
-    void setFragmentDensityMapOffsetEXT(const VkOffset2D *pFragmentDensityMapOffset);
-
     // Dynamic State Commands
     void setViewport(uint32_t firstViewport, uint32_t viewportCount, const VkViewport *pViewports);
     void setScissor(uint32_t firstScissor, uint32_t scissorCount, const VkRect2D *pScissors);
@@ -98,7 +96,7 @@ class CommandBuffer final
     void setPrimitiveTopology(VkPrimitiveTopology primitiveTopology);
 
     // Resource Binding Commands
-    void bindPipeline(VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline);
+    void bindPipeline(VkPipelineBindPoint pipelineBindPoint, const Pipeline* pipeline);
     void bindDescriptorSets(VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet,
                             uint32_t descriptorSetCount, const VkDescriptorSet *pDescriptorSets,
                             uint32_t dynamicOffsetCount, const uint32_t *pDynamicOffsets);
@@ -147,6 +145,8 @@ class CommandBuffer final
     void beginDebugUtilsLabelEXT(const VkDebugUtilsLabelEXT *pLabelInfo);
     void endDebugUtilsLabelEXT();
     void insertDebugUtilsLabelEXT(const VkDebugUtilsLabelEXT *pLabelInfo);
+
+    VkCommandBuffer handle() const { return command_buffer; }
 
   private:
     VkCommandPool command_pool;

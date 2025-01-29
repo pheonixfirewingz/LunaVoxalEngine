@@ -7,6 +7,8 @@
 #include <renderer/vulkan/device.h>
 #include <renderer/vulkan/swapchain.h>
 #include <renderer/vulkan/cmd_buffer.h>
+#include <renderer/vulkan/pipeline.h>
+#include <renderer/vulkan/queue.h>
 namespace LunaVoxalEngine::Platform
 {
 class Runtime final
@@ -32,8 +34,11 @@ class Runtime final
 
   private:
     Window *window;
+    Renderer::Queue *queue;
+    Renderer::Pipeline* pipeline;
     Renderer::Device *device;
     Renderer::SwapChain *swap_chain;
+    Renderer::CommandBuffer *command_buffer;
 };
 } // namespace LunaVoxalEngine::Platform
 #endif

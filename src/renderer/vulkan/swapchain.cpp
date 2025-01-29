@@ -3,6 +3,8 @@
 #include <renderer/vulkan/swapchain.h>
 #include <utils/algoritom.h>
 
+using namespace LunaVoxalEngine::Utils;
+
 extern VkAllocationCallbacks callbacks;
 
 static inline const char *string_VkResult(VkResult input_value)
@@ -112,72 +114,35 @@ static inline const char *string_VkResult(VkResult input_value)
     }
 }
 
-VkSurfaceFormatKHR chooseSwapSurfaceFormat(const VkSurfaceFormatKHR *availableFormats, uint32_t formatCount)
-{
-    for (uint32_t i = 0; i < formatCount; i++)
-    {
-        VkSurfaceFormatKHR availableFormat = availableFormats[i];
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
-            availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        {
-            return availableFormat;
-        }
-    }
-    return availableFormats[0];
-}
-
-VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes, uint32_t presentModeCount)
-{
-    for (uint32_t i = 0; i < presentModeCount; i++)
-    {
-        VkPresentModeKHR availablePresentMode = availablePresentModes[i];
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-        {
-            return availablePresentMode;
-        }
-    }
-
-    return VK_PRESENT_MODE_FIFO_KHR;
-}
-
 static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *device, VkSwapchainKHR *swap_chain,
-                                  VkSurfaceKHR surface, VkFormat *format, VkExtent2D *extent) noexcept
+                                  VkSurfaceKHR surface, VkSurfaceFormatKHR format, VkPresentModeKHR present_mode,
+                                  VkExtent2D *extent) noexcept
 {
-    // Query surface capabilities, formats, and present modes first
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->get_physical_device(), surface, &capabilities);
 
-    uint32_t format_count = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device->get_physical_device(), surface, &format_count, nullptr);
-    VkSurfaceFormatKHR surface_formats[format_count];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device->get_physical_device(), surface, &format_count, surface_formats);
-
-    uint32_t present_mode_count = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device->get_physical_device(), surface, &present_mode_count, nullptr);
-    VkPresentModeKHR present_modes[present_mode_count];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device->get_physical_device(), surface, &present_mode_count,
-                                              present_modes);
     // Choose swap chain image count (usually want triple buffering)
     uint32_t image_count = capabilities.minImageCount + 1;
     if (capabilities.maxImageCount > 0)
     {
         image_count = LunaVoxalEngine::Utils::min(image_count, capabilities.maxImageCount);
     }
+
     // TODO: handle different family indices
     uint32_t graphics_family_index = device->get_graphics_family_index();
     uint32_t present_family_index = device->get_graphics_family_index();
+
     VkSwapchainCreateInfoKHR create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    create_info.pNext = nullptr;
-    create_info.flags = 0;
     create_info.surface = surface;
     create_info.minImageCount = image_count;
-    const auto format = chooseSwapSurfaceFormat(surface_formats, format_count);
     create_info.imageFormat = format.format;
     create_info.imageColorSpace = format.colorSpace;
     create_info.imageExtent = capabilities.currentExtent;
+    *extent = capabilities.currentExtent; // Store the extent
     create_info.imageArrayLayers = 1;
     create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
     uint32_t queue_family_indices[] = {graphics_family_index, present_family_index};
     if (graphics_family_index != present_family_index)
     {
@@ -194,11 +159,43 @@ static VkResult create_swap_chain(const LunaVoxalEngine::Renderer::Device *devic
 
     create_info.preTransform = capabilities.currentTransform;
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    create_info.presentMode = chooseSwapPresentMode(present_modes, present_mode_count);
+    create_info.presentMode = present_mode;
     create_info.clipped = VK_TRUE;
     create_info.oldSwapchain = *swap_chain;
 
     return vkCreateSwapchainKHR(volkGetLoadedDevice(), &create_info, &callbacks, swap_chain);
+}
+
+static void create_image_views(VkSwapchainKHR swap_chain, VkSurfaceFormatKHR format, Vector<VkImage> *images,
+                               Vector<VkImageView> *image_views) noexcept
+{
+    uint32_t image_count = 0;
+    vkGetSwapchainImagesKHR(volkGetLoadedDevice(), swap_chain, &image_count, nullptr);
+    images->resize(image_count);
+    vkGetSwapchainImagesKHR(volkGetLoadedDevice(), swap_chain, &image_count, images->data());
+
+    image_views->resize(image_count);
+    for (uint32_t i = 0; i < image_count; i++)
+    {
+        VkImageViewCreateInfo create_info = {};
+        create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        create_info.image = images->at(i);
+        create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        create_info.format = format.format;
+        create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        create_info.subresourceRange.baseMipLevel = 0;
+        create_info.subresourceRange.levelCount = 1;
+        create_info.subresourceRange.baseArrayLayer = 0;
+        create_info.subresourceRange.layerCount = 1;
+        if (vkCreateImageView(volkGetLoadedDevice(), &create_info, &callbacks, &image_views->at(i)) != VK_SUCCESS)
+        {
+            LunaVoxalEngine::Log::fatal("Failed to create image views!");
+        }
+    }
 }
 
 namespace LunaVoxalEngine::Renderer
@@ -209,18 +206,16 @@ VkResult SwapChain::acquireNextImage(VkSemaphore semaphore, VkFence fence, uint3
     return vkAcquireNextImageKHR(volkGetLoadedDevice(), swap_chain, UINT64_MAX, semaphore, fence, imageIndex);
 }
 
-VkResult SwapChain::present(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
+VkResult SwapChain::present(Queue* queue, uint32_t imageIndex, VkSemaphore waitSemaphore)
 {
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &waitSemaphore;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &swap_chain;
-    presentInfo.pImageIndices = &imageIndex;
-    presentInfo.pResults = nullptr;
-
-    return vkQueuePresentKHR(queue, &presentInfo);
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = &waitSemaphore;
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = &swap_chain;
+    present_info.pImageIndices = &imageIndex;
+    return queue->present(present_info);
 }
 
 SwapChain::SwapChain(const Device *device, Platform::NativeWindow native_window)
@@ -234,8 +229,6 @@ SwapChain::SwapChain(const Device *device, Platform::NativeWindow native_window)
 
     VkWin32SurfaceCreateInfoKHR create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    create_info.pNext = nullptr;
-    create_info.flags = 0;
     create_info.hinstance = native_window_->hinstance;
     create_info.hwnd = native_window_->hwnd;
 
@@ -286,11 +279,48 @@ SwapChain::SwapChain(const Device *device, Platform::NativeWindow native_window)
     }
 #    endif
 #endif
+    uint32_t format_count = 0;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device->get_physical_device(), surface, &format_count, nullptr);
+    VkSurfaceFormatKHR surface_formats[format_count];
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device->get_physical_device(), surface, &format_count, surface_formats);
+    auto chose = [&]() {
+        for (uint32_t i = 0; i < format_count; i++)
+        {
+            VkSurfaceFormatKHR availableFormat = surface_formats[i];
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
+                return availableFormat;
+            }
+        }
+        return surface_formats[0];
+    };
 
-    if (auto result = create_swap_chain(device, &swap_chain, surface, &image_format, &extent); result != VK_SUCCESS)
+    uint32_t present_mode_count = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device->get_physical_device(), surface, &present_mode_count, nullptr);
+    VkPresentModeKHR present_modes[present_mode_count];
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device->get_physical_device(), surface, &present_mode_count,
+                                              present_modes);
+    auto chose_present_mode = [&]() {
+        for (uint32_t i = 0; i < present_mode_count; i++)
+        {
+            if (present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+            {
+                return present_modes[i];
+            }
+        }
+        return VK_PRESENT_MODE_FIFO_KHR;
+    };
+
+    image_format = chose();
+    present_mode = chose_present_mode();
+
+    if (auto result = create_swap_chain(device, &swap_chain, surface, image_format, present_mode, &extent);
+        result != VK_SUCCESS)
     {
         Log::error("Failed to create swapchain %s", string_VkResult(result));
     }
+    create_image_views(swap_chain, image_format, &images, &image_views);
 }
 
 void SwapChain::resize(const Device *device)
@@ -302,12 +332,21 @@ void SwapChain::resize(const Device *device)
     }
 #endif
     auto old_swap_chain = swap_chain;
-    create_swap_chain(device, &swap_chain, surface, &image_format, &extent);
+    for (auto image_view : image_views)
+    {
+        vkDestroyImageView(volkGetLoadedDevice(), image_view, &callbacks);
+    }
+    create_swap_chain(device, &swap_chain, surface, image_format, present_mode, &extent);
     vkDestroySwapchainKHR(volkGetLoadedDevice(), old_swap_chain, &callbacks);
+    create_image_views(swap_chain, image_format, &images, &image_views);
 }
 
 SwapChain::~SwapChain()
 {
+    for (auto image_view : image_views)
+    {
+        vkDestroyImageView(volkGetLoadedDevice(), image_view, &callbacks);
+    }
     vkDestroySwapchainKHR(volkGetLoadedDevice(), swap_chain, &callbacks);
     vkDestroySurfaceKHR(volkGetLoadedInstance(), surface, &callbacks);
 }

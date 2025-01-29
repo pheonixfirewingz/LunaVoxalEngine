@@ -8,9 +8,13 @@ CommandBuffer::CommandBuffer(VkCommandPool commandPool, VkCommandBufferLevel lev
 CommandBuffer::~CommandBuffer()
 {
 }
-void CommandBuffer::begin(const VkCommandBufferBeginInfo *pBeginInfo)
+void CommandBuffer::begin(const VkCommandBufferUsageFlags usage)
 {
-    vkBeginCommandBuffer(command_buffer, pBeginInfo);
+    VkCommandBufferBeginInfo begin_info{};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags = usage;
+
+    vkBeginCommandBuffer(command_buffer, &begin_info);
 }
 void CommandBuffer::end()
 {
@@ -198,9 +202,9 @@ void CommandBuffer::setPrimitiveTopology(VkPrimitiveTopology primitiveTopology)
 {
     vkCmdSetPrimitiveTopology(command_buffer, primitiveTopology);
 }
-void CommandBuffer::bindPipeline(VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
+void CommandBuffer::bindPipeline(VkPipelineBindPoint pipelineBindPoint, const Pipeline* pipeline)
 {
-    vkCmdBindPipeline(command_buffer, pipelineBindPoint, pipeline);
+    vkCmdBindPipeline(command_buffer, pipelineBindPoint, pipeline->handle());
 }
 void CommandBuffer::bindDescriptorSets(VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout,
                                        uint32_t firstSet, uint32_t descriptorSetCount,

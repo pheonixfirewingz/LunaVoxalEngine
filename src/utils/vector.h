@@ -247,7 +247,6 @@ template<typename T> class Vector final
         {
             reserve(_capacity == 0 ? 1 : _capacity * 2);
         }
-        // Placement new for in-place construction
         new (_data + _size) T(static_cast<Args &&>(args)...);
         ++_size;
     }
@@ -316,7 +315,6 @@ template<typename T> class Vector final
             T *new_ptr = new T[new_cap];
             if (_data != nullptr && _size > 0)
             {
-                // Using your custom memcpy implementation
                 memcpy(new_ptr, _data, _size * sizeof(T));
             }
             delete[] _data;
