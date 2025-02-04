@@ -175,3 +175,69 @@ set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 # Print out detected platform sources for debugging
 message(STATUS "Platform: ${PLATFORM_NAME}")
 message(STATUS "Platform Sources: ${PLATFORM_SOURCES}")
+function(generate_docs_from_headers target_name source_dir output_dir)
+    # Validate required parameters
+    if(NOT DEFINED target_name OR NOT DEFINED source_dir OR NOT DEFINED output_dir)
+        message(FATAL_ERROR "Missing required parameters. Usage: generate_docs_from_headers(target_name source_dir output_dir)")
+    endif()
+
+    # Find Doxygen package
+    find_package(Doxygen REQUIRED)
+    if(NOT DOXYGEN_FOUND)
+        message(FATAL_ERROR "Doxygen is needed to generate documentation")
+    endif()
+
+    # Convert paths to absolute
+    get_filename_component(source_dir_abs ${source_dir} ABSOLUTE)
+    get_filename_component(output_dir_abs ${output_dir} ABSOLUTE)
+
+    # Find all header files excluding third_party directories
+    file(GLOB_RECURSE HEADER_FILES
+        "${source_dir_abs}/*.h"
+        "${source_dir_abs}/*.hpp"
+    )
+
+    # Filter out any header files in third_party directories
+    list(FILTER HEADER_FILES EXCLUDE REGEX "third_party/")
+
+    # Convert header files list to space-separated string for Doxyfile
+    string(REPLACE ";" " " HEADER_FILES_STR "${HEADER_FILES}")
+
+    # Create output directory if it doesn't exist
+    file(MAKE_DIRECTORY ${output_dir_abs})
+
+    # Create a custom target for documentation generation
+    add_custom_target(${target_name} ALL
+        # Copy template Doxyfile
+        COMMAND ${CMAKE_COMMAND} -E copy 
+            ${source_dir_abs}/docs/template_Doxyfile 
+            ${output_dir_abs}/Doxyfile
+
+        # Configure Doxyfile with input files and output directory
+        COMMAND ${CMAKE_COMMAND} -E echo "INPUT = ${HEADER_FILES_STR}" >> ${output_dir_abs}/Doxyfile
+        COMMAND ${CMAKE_COMMAND} -E echo "OUTPUT_DIRECTORY = ${output_dir_abs}" >> ${output_dir_abs}/Doxyfile
+
+        # Run doxygen using the found executable
+        COMMAND "${DOXYGEN_EXECUTABLE}" ${output_dir_abs}/Doxyfile
+        
+        WORKING_DIRECTORY ${output_dir_abs}
+        COMMENT "Generating documentation in ${output_dir_abs}"
+        DEPENDS ${HEADER_FILES}
+        VERBATIM
+    )
+
+    # Add a clean target for documentation
+    add_custom_target(${target_name}_clean
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${output_dir_abs}
+        COMMENT "Cleaning documentation in ${output_dir_abs}"
+    )
+endfunction()
+
+# Example usage
+generate_docs_from_headers(
+    docs 
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_BINARY_DIR}/docs
+    "*.h;*.hpp;*.hxx"  # Add more header patterns if needed
+)
+
